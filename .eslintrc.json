@@ -1,0 +1,25 @@
+{
+    "env": {
+      "es6": true,
+      "node": true,
+      "jest": true
+    },
+    "parser": "babel-eslint",
+    "parserOptions": {
+      "ecmaVersion": 2019
+    },
+    "plugins": ["jest", "jest-extended", "prettier"],
+    "extends": ["prettier"],
+    "rules": {
+      "prettier/prettier": "error",
+      "linebreak-style": ["error", "unix"],
+      "quotes": ["error", "double", { "allowTemplateLiterals": true }],
+      "semi": ["error", "always"],
+      "no-console": ["error", { "allow": ["info", "error"] }],
+      "jest/no-disabled-tests": "warn",
+      "jest/no-focused-tests": "error",
+      "jest/no-identical-title": "error",
+      "jest/prefer-to-have-length": "warn",
+      "jest/valid-expect": "error"
+    }
+  }
