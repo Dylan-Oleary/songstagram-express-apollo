@@ -10,12 +10,13 @@
     "build": "tsc -p tsconfig.json",
     "build:watch": "tsc -p tsconfig.json --watch",
     "dev": "yarn build && concurrently -n TypeScript,Server -c cyan,yellow \"yarn build:watch\" \"yarn start:dev\"",
-    "start:dev": "nodemon ./build/server.js"
+    "start:dev": "nodemon ./build/server.js",
+    "lint": "eslint . && echo '\n\nLint Complete - No Errors\n\n'"
   },
   "husky": {
     "hooks": {
-      "pre-commit": "concurrently -n Linter,Prettier -c magenta,green \"yarn lint\" \"yarn prettier\"",
-      "pre-push": "concurrently -n Linter,Prettier -c magenta,green,red \"yarn lint\" \"yarn prettier\""
+      "pre-commit": "concurrently -n Linter -c magenta \"yarn lint\"",
+      "pre-push": "concurrently -n Linter -c magenta \"yarn lint\""
     }
   },
   "nodemonConfig": {
