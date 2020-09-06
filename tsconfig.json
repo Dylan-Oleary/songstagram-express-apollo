@@ -11,7 +11,7 @@
     "sourceMap": true,
     "strict": true,
     "target": "ES6",
-    "typeRoots": ["./node_modules/@types", "./src/**/*.ts", "./global.d.ts"]
+    "typeRoots": ["./node_modules/@types", "./src/**/*.ts", "./custom.d.ts"]
   },
   "exclude": ["node_modules", "tests"]
 }
