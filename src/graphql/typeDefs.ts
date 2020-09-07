@@ -8,21 +8,44 @@ const typeDefs = gql`
         name: String!
         artists: [Artist]!
         tracks: [Track]!
+        uri: String!
         release_date: DateTime
         genres: [String]
         label: String
         album_type: String
         type: String
         popularity: Int
-        uri: String!
+        images: [Image]
+        copyrights: [Copyright]
+        external_urls: ExternalURLs
+        total_tracks: Int
     }
 
     type Artist {
         id: ID!
         name: String!
         albums: [Album]
+        tracks: [Track]
         genres: [String]
         popularity: Int
+        images: [Image]
+        type: String
+        external_urls: ExternalURLs
+    }
+
+    type Copyright {
+        text: String
+        type: String
+    }
+
+    type ExternalURLs {
+        spotify: String
+    }
+
+    type Image {
+        height: Int!
+        width: Int!
+        url: String!
     }
 
     type SpotifySearch {
@@ -37,8 +60,12 @@ const typeDefs = gql`
         artists: [Artist]!
         album: Album!
         duration_ms: Int!
-        popularity: Int
+        explicit: Boolean!
         uri: String!
+        disc_number: Int
+        external_urls: ExternalURLs
+        popularity: Int
+        track_number: Int
         type: String
     }
 
@@ -47,6 +74,9 @@ const typeDefs = gql`
         albums(albumIDs: [ID]!): [Album]
         artist(artistID: ID!): Artist
         artists(artistIDs: [ID]!): [Artist]
+        spotifySearch(query: String!): SpotifySearch
+        track(trackID: ID!): Track
+        tracks(trackIDs: [ID]!): [Track]
     }
 `;
 

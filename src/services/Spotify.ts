@@ -16,6 +16,7 @@ class SpotifyService {
     private webApiUrl: string;
     private webApiToken: string;
     private webApiHeaders: SpotifyWebApiHeaders;
+    private market: string;
 
     constructor(webApiToken: string) {
         this.webApiUrl = "https://api.spotify.com/v1";
@@ -24,6 +25,7 @@ class SpotifyService {
             Authorization: `Bearer ${webApiToken}`,
             "Content-Type": "application/x-www-form-urlencoded"
         };
+        this.market = "US";
     }
 
     /**
@@ -57,7 +59,10 @@ class SpotifyService {
      */
     getAlbumsByArtist(artistID: string) {
         return axios
-            .get(`${this.webApiUrl}/artists/${artistID}/albums`, { headers: this.webApiHeaders })
+            .get(`${this.webApiUrl}/artists/${artistID}/albums`, {
+                headers: this.webApiHeaders,
+                params: { market: this.market }
+            })
             .then(({ data }) => data.items);
     }
 
@@ -78,7 +83,7 @@ class SpotifyService {
      * @see https://developer.spotify.com/console/get-several-albums/
      */
     getAlbums(albumIDs: string[]) {
-        const params = { ids: albumIDs.join(",") };
+        const params = { ids: albumIDs.join(","), market: this.market };
 
         return axios
             .get(`${this.webApiUrl}/albums`, { headers: this.webApiHeaders, params })
@@ -113,7 +118,7 @@ class SpotifyService {
      * @see https://developer.spotify.com/console/get-several-tracks/
      */
     getTracks(trackIDs: string[]) {
-        const params = { ids: trackIDs.join(",") };
+        const params = { ids: trackIDs.join(","), market: this.market };
 
         return axios
             .get(`${this.webApiUrl}/tracks`, { headers: this.webApiHeaders, params })
@@ -129,7 +134,8 @@ class SpotifyService {
         const params = {
             q: query,
             type: "track",
-            limit: 10
+            limit: 10,
+            market: this.market
         };
 
         return axios
