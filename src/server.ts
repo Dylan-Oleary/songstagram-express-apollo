@@ -22,7 +22,9 @@ console.info(`Environment: ${process.env.NODE_ENV}`);
 
 const envKeys = [
     "ALLOWED_ORIGIN",
-    "MONGO_URI",
+    "MYSQL_HOST",
+    "MYSQL_PORT",
+    "MYSQL_DATABASE",
     "SESSION_SECRET",
     "SPOTIFY_CLIENT_ID",
     "SPOTIFY_CLIENT_SECRET",
@@ -49,6 +51,7 @@ app.on("ready", () => {
         console.info("");
         console.info("Ready!");
         console.info(`Listening at: http://localhost:${port}`);
+        console.info(`GraphQL at: http://localhost:${port}/graphql`);
         console.info("");
     });
 });

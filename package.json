@@ -11,7 +11,10 @@
     "build:watch": "tsc -p tsconfig.json --watch",
     "dev": "yarn build && concurrently -n TypeScript,Server -c cyan,yellow \"yarn build:watch\" \"yarn start:dev\"",
     "start:dev": "nodemon ./build/server.js",
-    "lint": "eslint . && echo '\n\nLint Complete - No Errors\n\n'"
+    "lint": "eslint . && echo '\n\nLint Complete - No Errors\n\n'",
+    "knex:migrate": "knex migrate:latest --knexfile ./src/knex/knexfile.ts",
+    "knex:rollback": "knex migrate:rollback --knexfile ./src/knex/knexfile.ts",
+    "knex:seed": "knex seed:run --knexfile ./src/knex/knexfile.ts"
   },
   "husky": {
     "hooks": {
@@ -35,15 +38,15 @@
     "express": "^4.17.1",
     "graphql": "^15.3.0",
     "graphql-tools": "^6.2.1",
-    "mongoose": "^5.10.3",
+    "knex": "^0.21.5",
     "ms": "^2.1.2",
+    "mysql2": "^2.1.0",
     "qs": "^6.9.4"
   },
   "devDependencies": {
     "@types/compression": "^1.7.0",
     "@types/express": "^4.17.8",
     "@types/graphql": "^14.5.0",
-    "@types/mongoose": "^5.7.36",
     "@types/ms": "^0.7.31",
     "@types/node": "^14.6.4",
     "concurrently": "^5.3.0",

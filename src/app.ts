@@ -1,20 +1,19 @@
 import compression from "compression";
 import cors from "cors";
-import express from "express";
+import express, { Express } from "express";
 import { ApolloServer } from "apollo-server-express";
 
-import { initializeMongo } from "./config";
 import { SPOTIFY_WEB_API_TOKEN } from "./config/constants";
 import { schema } from "./graphql";
-import initializeSpotify from "./config/spotify";
+import { initializeSpotify, testDatabaseConnection } from "./config";
 
 /**
  * Main application initialization
  */
-const initializeApp = () => {
+const initializeApp: () => Express = () => {
     const app = express();
 
-    Promise.all([initializeMongo(), initializeSpotify(app)])
+    Promise.all([testDatabaseConnection(app), initializeSpotify(app)])
         .then(() => {
             /**
              * Configure Application
