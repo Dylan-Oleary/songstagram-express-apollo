@@ -1,6 +1,9 @@
 {
   "compilerOptions": {
     "baseUrl": ".",
+    "paths": {
+      "~knex/*": ["src/knex/*"]
+    },
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "lib": ["dom", "dom.iterable", "esnext"],
@@ -13,5 +16,5 @@
     "target": "ES6",
     "typeRoots": ["./node_modules/@types", "./src/**/*.ts", "./custom.d.ts"]
   },
-  "exclude": ["node_modules", "tests"]
+  "exclude": ["node_modules", "./src/tests"]
 }
