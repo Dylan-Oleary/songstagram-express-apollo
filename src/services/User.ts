@@ -171,60 +171,57 @@ class UserService {
             }
         } as IFormValidationObject;
 
-        try {
-            const submissionErrors = validateSubmission(createUserValidation, userSubmission);
+        const submissionErrors = validateSubmission(createUserValidation, userSubmission);
 
-            if (submissionErrors) throw submissionErrors;
+        if (submissionErrors) return Promise.reject(submissionErrors);
 
-            const hashedPassword = await this.hashPassword(userSubmission.password);
-            const newUser = {
-                firstName: userSubmission.firstName.trim(),
-                lastName: userSubmission.lastName.trim(),
-                username: userSubmission.username.trim(),
-                email: userSubmission.email.trim(),
-                password: hashedPassword
-            };
+        const hashedPassword = await this.hashPassword(userSubmission.password);
+        const newUser = {
+            firstName: userSubmission.firstName.trim(),
+            lastName: userSubmission.lastName.trim(),
+            username: userSubmission.username.trim(),
+            email: userSubmission.email.trim(),
+            password: hashedPassword
+        };
 
-            return this.dbConnection(this.table)
-                .insert(newUser)
-                .then((record) => {
-                    return this.getUserByUserNo(record[0]);
-                })
-                .catch((error) => {
+        return this.dbConnection(this.table)
+            .insert(newUser)
+            .then((record) => {
+                return this.getUserByUserNo(record[0]);
+            })
+            .catch((error) => {
+                if (new RegExp("(UNIQUE constraint|Duplicate entry)", "i").test(error.message)) {
                     if (
-                        new RegExp("(UNIQUE constraint|Duplicate entry)", "i").test(error.message)
+                        new RegExp(`(UNIQUE constraint failed: ${this.table}.email)`, "i").test(
+                            error.message
+                        )
                     ) {
-                        if (
-                            new RegExp(`(UNIQUE constraint failed: ${this.table}.email)`, "i").test(
-                                error.message
-                            )
-                        ) {
-                            throw {
-                                statusCode: 409,
-                                message: "Conflict Error",
-                                details: [`${IUserFormLabels.Email} is already in use`]
-                            };
-                        }
-
-                        if (
-                            new RegExp(
-                                `(UNIQUE constraint failed: ${this.table}.username)`,
-                                "i"
-                            ).test(error.message)
-                        ) {
-                            throw {
-                                statusCode: 409,
-                                message: "Conflict Error",
-                                details: [`${IUserFormLabels.Username} is already in use`]
-                            };
-                        }
+                        return Promise.reject({
+                            statusCode: 409,
+                            message: "Conflict Error",
+                            details: [`${IUserFormLabels.Email} is already in use`]
+                        });
                     }
 
-                    throw error;
+                    if (
+                        new RegExp(`(UNIQUE constraint failed: ${this.table}.username)`, "i").test(
+                            error.message
+                        )
+                    ) {
+                        return Promise.reject({
+                            statusCode: 409,
+                            message: "Conflict Error",
+                            details: [`${IUserFormLabels.Username} is already in use`]
+                        });
+                    }
+                }
+
+                return Promise.reject({
+                    statusCode: 500,
+                    message: "Internal Error",
+                    details: []
                 });
-        } catch (error) {
-            throw error;
-        }
+            });
     }
 
     /**
@@ -232,6 +229,14 @@ class UserService {
      * @param userNo The user number used to look for the correct user
      */
     getUserByUserNo(userNo: number): Promise<IUser> {
+        if (!userNo || typeof userNo !== "number") {
+            return Promise.reject({
+                statusCode: 400,
+                message: "Bad Request",
+                details: ["Parameter Error: userNo must be a number"]
+            });
+        }
+
         return this.dbConnection(this.table)
             .first("*")
             .where(this.pk, userNo)
@@ -239,7 +244,8 @@ class UserService {
                 if (!record)
                     throw {
                         statusCode: 404,
-                        message: `A user with a ${this.pk} of ${userNo} could not be found`
+                        message: "Not Found",
+                        details: [`User with a ${this.pk} of ${userNo} could not be found`]
                     };
 
                 delete record.password;

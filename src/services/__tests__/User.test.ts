@@ -33,6 +33,85 @@ describe("User Service", () => {
         done();
     });
 
+    describe("getUserByUserNo", () => {
+        let user;
+
+        beforeAll((done) => {
+            const submission: ICreateUserValues = {
+                [IUserFormKeys.FirstName]: faker.name.firstName(),
+                [IUserFormKeys.LastName]: faker.name.lastName(),
+                [IUserFormKeys.Username]: "breakfastwithroxy",
+                [IUserFormKeys.Email]: faker.internet.email(),
+                [IUserFormKeys.Password]: "M0N3y!",
+                [IUserFormKeys.ConfirmPassword]: "M0N3y!"
+            };
+
+            return new UserService(dbConnection).createUser(submission).then((userRecord) => {
+                user = userRecord;
+                done();
+            });
+        });
+
+        test("returns a user record", () => {
+            return new UserService(dbConnection).getUserByUserNo(user.userNo).then((userRecord) => {
+                userRecordKeys.forEach((key) => {
+                    expect(userRecord).toHaveProperty(key);
+                });
+                expect(userRecord).toEqual(user);
+            });
+        });
+
+        test("does not return a user's password", () => {
+            return new UserService(dbConnection).getUserByUserNo(user.userNo).then((userRecord) => {
+                expect(userRecord).not.toHaveProperty("password");
+            });
+        });
+
+        test("throws a not found error (404) if no user is found", () => {
+            const invalidUserNo = 867;
+
+            return new UserService(dbConnection).getUserByUserNo(invalidUserNo).catch((error) => {
+                expect(error.statusCode).toEqual(404);
+                expect(error.message).toEqual("Not Found");
+                expect(error.details).toEqual(
+                    expect.arrayContaining([
+                        `User with a ${pk} of ${invalidUserNo} could not be found`
+                    ])
+                );
+            });
+        });
+
+        test("throws a bad request error (400) if userNo is undefined", async () => {
+            return new UserService(dbConnection).getUserByUserNo(undefined).catch((error) => {
+                expect(error.statusCode).toEqual(400);
+                expect(error.message).toEqual("Bad Request");
+                expect(error.details).toEqual(
+                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
+                );
+            });
+        });
+
+        test("throws a bad request error (400) if userNo is null", async () => {
+            return new UserService(dbConnection).getUserByUserNo(null).catch((error) => {
+                expect(error.statusCode).toEqual(400);
+                expect(error.message).toEqual("Bad Request");
+                expect(error.details).toEqual(
+                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
+                );
+            });
+        });
+
+        test("throws a bad request error (400) if userNo is a string", async () => {
+            return new UserService(dbConnection).getUserByUserNo("123").catch((error) => {
+                expect(error.statusCode).toEqual(400);
+                expect(error.message).toEqual("Bad Request");
+                expect(error.details).toEqual(
+                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
+                );
+            });
+        });
+    }); // close describe("getUserByUserNo")
+
     describe("createUser", () => {
         const submission: ICreateUserValues = {
             [IUserFormKeys.FirstName]: faker.name.firstName(),
