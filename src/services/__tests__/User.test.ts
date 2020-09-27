@@ -1,4 +1,5 @@
 //@ts-nocheck
+import faker from "faker";
 import { dbConnection } from "../../knex/db";
 import { ICreateUserValues, IUser, IUserFormKeys, IUserFormLabels, UserService } from "../User";
 
@@ -34,10 +35,10 @@ describe("User Service", () => {
 
     describe("createUser", () => {
         const submission: ICreateUserValues = {
-            [IUserFormKeys.FirstName]: "David",
-            [IUserFormKeys.LastName]: "Gilmour",
+            [IUserFormKeys.FirstName]: faker.name.firstName(),
+            [IUserFormKeys.LastName]: faker.name.lastName(),
             [IUserFormKeys.Username]: "spaghetti_strings",
-            [IUserFormKeys.Email]: "davidgilmour@darkside.uk",
+            [IUserFormKeys.Email]: faker.internet.email(),
             [IUserFormKeys.Password]: "M0N3y!",
             [IUserFormKeys.ConfirmPassword]: "M0N3y!"
         };
@@ -243,6 +244,32 @@ describe("User Service", () => {
                             });
                     });
                 }); // close forEach
+
+                test("throws a conflict error (409) if the username is aleady in use", () => {
+                    const email = faker.internet.email();
+                    let newSubmission: ICreateUserValues = {
+                        ...submission,
+                        [IUserFormKeys.Email]: email,
+                        [IUserFormKeys.Username]: "conflict"
+                    };
+
+                    return new UserService(dbConnection).createUser(newSubmission).then(() => {
+                        return new UserService(dbConnection)
+                            .createUser({
+                                ...newSubmission,
+                                [IUserFormKeys.Email]: `xyz${email}`
+                            })
+                            .catch((error) => {
+                                expect(error.statusCode).toEqual(409);
+                                expect(error.message).toEqual("Conflict Error");
+                                expect(error.details).toEqual(
+                                    expect.arrayContaining([
+                                        `${IUserFormLabels.Username} is already in use`
+                                    ])
+                                );
+                            });
+                    });
+                });
             }); // close describe("Username")
 
             describe("Email Address", () => {
@@ -350,6 +377,32 @@ describe("User Service", () => {
                                 expect(error.message).toEqual("Validation Error");
                                 expect(error.details).toEqual(
                                     expect.arrayContaining([`${IUserFormLabels.Email} is invalid`])
+                                );
+                            });
+                    });
+                });
+
+                test("throws a conflict error (409) if the email is aleady in use", () => {
+                    const email = faker.internet.email();
+                    let newSubmission: ICreateUserValues = {
+                        ...submission,
+                        [IUserFormKeys.Email]: email,
+                        [IUserFormKeys.Username]: "newuser"
+                    };
+
+                    return new UserService(dbConnection).createUser(newSubmission).then(() => {
+                        return new UserService(dbConnection)
+                            .createUser({
+                                ...newSubmission,
+                                [IUserFormKeys.Username]: "newuser1"
+                            })
+                            .catch((error) => {
+                                expect(error.statusCode).toEqual(409);
+                                expect(error.message).toEqual("Conflict Error");
+                                expect(error.details).toEqual(
+                                    expect.arrayContaining([
+                                        `${IUserFormLabels.Email} is already in use`
+                                    ])
                                 );
                             });
                     });

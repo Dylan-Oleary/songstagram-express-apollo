@@ -189,6 +189,38 @@ class UserService {
                 .insert(newUser)
                 .then((record) => {
                     return this.getUserByUserNo(record[0]);
+                })
+                .catch((error) => {
+                    if (
+                        new RegExp("(UNIQUE constraint|Duplicate entry)", "i").test(error.message)
+                    ) {
+                        if (
+                            new RegExp(`(UNIQUE constraint failed: ${this.table}.email)`, "i").test(
+                                error.message
+                            )
+                        ) {
+                            throw {
+                                statusCode: 409,
+                                message: "Conflict Error",
+                                details: [`${IUserFormLabels.Email} is already in use`]
+                            };
+                        }
+
+                        if (
+                            new RegExp(
+                                `(UNIQUE constraint failed: ${this.table}.username)`,
+                                "i"
+                            ).test(error.message)
+                        ) {
+                            throw {
+                                statusCode: 409,
+                                message: "Conflict Error",
+                                details: [`${IUserFormLabels.Username} is already in use`]
+                            };
+                        }
+                    }
+
+                    throw error;
                 });
         } catch (error) {
             throw error;
