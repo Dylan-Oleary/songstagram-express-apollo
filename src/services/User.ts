@@ -56,11 +56,8 @@ export enum IUserFormLabels {
     ProfilePicture = "Profile Picture"
 }
 
-export const emailAddressRegExpValue = new RegExp(
-    "^[a-z][a-z0-9-_.+]{2,}[a-z0-9]@[a-z0-9-_.]{1,}.[a-z]{2,8}$",
-    "i"
-);
-export const usernameValidation = new RegExp("^(?!.*..)(?!.*.$)[^W][w.]{0,29}$", "ig");
+export const emailAddressRegExpValue = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+export const usernameRegExpValue = /^([A-Za-z0-9_](?:(?:[A-Za-z0-9_]|(?:.(?!.))){0,28}(?:[A-Za-z0-9_]))?)$/;
 
 export const baseUserValidation = {
     [IUserFormKeys.FirstName]: {
@@ -99,7 +96,7 @@ export const baseUserValidation = {
         check: (value: string) => {
             if (value.length > 30)
                 return new Error(`${IUserFormLabels.Username} cannot be more than 30 characters`);
-            if (!usernameValidation.test(value))
+            if (!new RegExp(usernameRegExpValue).test(value))
                 return new Error(`${IUserFormLabels.Username} is invalid`);
 
             return undefined;
@@ -109,10 +106,10 @@ export const baseUserValidation = {
         isRequired: true,
         label: IUserFormLabels.Email,
         check: (value: string) => {
-            if (!emailAddressRegExpValue.test(value))
-                return new Error(`${IUserFormLabels.Email} is invalid`);
             if (value.length > 255)
                 return new Error(`${IUserFormLabels.Email} cannot be more than 255 characters`);
+            if (!new RegExp(emailAddressRegExpValue, "i").test(value))
+                return new Error(`${IUserFormLabels.Email} is invalid`);
 
             return undefined;
         }
@@ -137,6 +134,7 @@ const BCRYPT_HASH_SALT_ROUNDS = 10;
  */
 class UserService {
     private dbConnection: knex;
+    private readonly pk = "userNo";
     private readonly table = "users";
 
     constructor(dbConnection: knex) {
@@ -147,7 +145,7 @@ class UserService {
      * Creates a new user
      * @param user User information used to create a new user
      */
-    async createUser(userSubmission: ICreateUserValues): Promise<any> {
+    async createUser(userSubmission: ICreateUserValues): Promise<IUser> {
         const createUserValidation = {
             ...baseUserValidation,
             [IUserFormKeys.Password]: {
@@ -156,7 +154,7 @@ class UserService {
                 check: (value: string) => {
                     if (value.length > 50)
                         return new Error(
-                            `${IUserFormLabels.Password} must be less than 50 characters`
+                            `${IUserFormLabels.Password} cannot be more than 50 characters`
                         );
                     return undefined;
                 }
@@ -172,11 +170,12 @@ class UserService {
                 }
             }
         } as IFormValidationObject;
-        const submissionErrors = validateSubmission(createUserValidation, userSubmission);
-
-        if (submissionErrors) throw submissionErrors;
 
         try {
+            const submissionErrors = validateSubmission(createUserValidation, userSubmission);
+
+            if (submissionErrors) throw submissionErrors;
+
             const hashedPassword = await this.hashPassword(userSubmission.password);
             const newUser = {
                 firstName: userSubmission.firstName.trim(),
@@ -188,13 +187,33 @@ class UserService {
 
             return this.dbConnection(this.table)
                 .insert(newUser)
-                .then((user) => {
-                    console.log(user);
-                    return user;
+                .then((record) => {
+                    return this.getUserByUserNo(record[0]);
                 });
         } catch (error) {
             throw error;
         }
+    }
+
+    /**
+     * Fetches a user record by using `userNo` as a lookup parameter
+     * @param userNo The user number used to look for the correct user
+     */
+    getUserByUserNo(userNo: number): Promise<IUser> {
+        return this.dbConnection(this.table)
+            .first("*")
+            .where(this.pk, userNo)
+            .then((record) => {
+                if (!record)
+                    throw {
+                        statusCode: 404,
+                        message: `A user with a ${this.pk} of ${userNo} could not be found`
+                    };
+
+                delete record.password;
+
+                return record;
+            });
     }
 
     /**

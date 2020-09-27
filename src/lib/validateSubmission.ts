@@ -24,22 +24,29 @@ export const validateSubmission: (
 ) => IFormValidationError | undefined = (validation, submission) => {
     let submissionErrors: string[] = [];
 
-    Object.keys(submission).forEach((submissionKey) => {
-        if (validation[submissionKey]) {
-            if (
-                validation[submissionKey].isRequired &&
-                String(submission[submissionKey]).trim().length === 0
-            )
-                submissionErrors.push(`${validation[submissionKey].label} is a required field`);
+    Object.keys(submission).forEach((key) => {
+        if (submission[key] === undefined || submission[key] === null) delete submission[key];
+    });
 
-            const fieldError = validation[submissionKey].check(
-                submission[submissionKey],
+    Object.keys(validation).forEach((validationKey) => {
+        if (submission[validationKey]) {
+            if (
+                validation[validationKey].isRequired &&
+                String(submission[validationKey]).trim().length === 0
+            )
+                submissionErrors.push(`${validation[validationKey].label} is a required field`);
+
+            const fieldError = validation[validationKey].check(
+                submission[validationKey],
                 submission
             );
 
             if (fieldError && fieldError.message) {
                 submissionErrors.push(fieldError.message);
             }
+        } else {
+            if (validation[validationKey].isRequired)
+                submissionErrors.push(`${validation[validationKey].label} is a required field`);
         }
     });
 

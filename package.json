@@ -7,7 +7,7 @@
   "license": "MIT",
   "repository": "https://github.com/Dylan-Oleary/songstagram-express-apollo",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
     "build:watch": "tsc -p tsconfig.json --watch",
     "clean": "rm -fr build",
     "dev": "yarn build && concurrently -n TypeScript,Server -c cyan,yellow \"yarn build:watch\" \"yarn start:dev\"",
@@ -16,14 +16,14 @@
     "knex:rollback": "knex migrate:rollback --knexfile ./src/knex/knexfile.ts",
     "knex:seed": "knex seed:run --knexfile ./src/knex/knexfile.ts",
     "start:dev": "nodemon ./build/server.js",
-    "test": "jest --verbose --runInBand --detectOpenHandles",
-    "test:coverage": "jest --verbose --coverage --detectOpenHandles",
+    "test": "jest --verbose --runInBand",
+    "test:coverage": "jest --verbose --coverage",
     "test:watch": "jest --verbose --watch"
   },
   "husky": {
     "hooks": {
-      "pre-commit": "concurrently -n Linter -c magenta \"yarn lint\"",
-      "pre-push": "concurrently -n Linter -c magenta \"yarn lint\""
+      "pre-commit": "concurrently -n Linter,Test -c magenta,green \"yarn lint\"",
+      "pre-push": "concurrently -n Linter,Test -c magenta,green \"yarn lint\" \"yarn test\""
     }
   },
   "nodemonConfig": {
@@ -54,6 +54,7 @@
     "@types/express": "^4.17.8",
     "@types/graphql": "^14.5.0",
     "@types/jest": "^26.0.13",
+    "@types/knex": "^0.16.1",
     "@types/ms": "^0.7.31",
     "@types/node": "^14.6.4",
     "concurrently": "^5.3.0",
