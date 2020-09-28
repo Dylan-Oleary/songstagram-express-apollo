@@ -1,10 +1,12 @@
 //@ts-nocheck
+import bcrypt from "bcrypt";
 import faker from "faker";
 import { dbConnection } from "../../knex/db";
 import { ICreateUserValues, IUser, IUserFormKeys, IUserFormLabels, UserService } from "../User";
 
 describe("User Service", () => {
     const pk = "userNo";
+    const tableName = "users";
     const userRecordKeys = [
         "userNo",
         "firstName",
@@ -36,7 +38,7 @@ describe("User Service", () => {
     describe("getUserByUserNo", () => {
         let user;
 
-        beforeAll((done) => {
+        beforeAll(async (done) => {
             const submission: ICreateUserValues = {
                 [IUserFormKeys.FirstName]: faker.name.firstName(),
                 [IUserFormKeys.LastName]: faker.name.lastName(),
@@ -121,7 +123,7 @@ describe("User Service", () => {
             [IUserFormKeys.Password]: "M0N3y!",
             [IUserFormKeys.ConfirmPassword]: "M0N3y!"
         };
-        let newUser: IUser;
+        let newUser;
 
         test("successfully creates a user", () => {
             return new UserService(dbConnection).createUser(submission).then((userRecord) => {
@@ -644,4 +646,123 @@ describe("User Service", () => {
             }); // close describe("Confirm Password")
         }); // close describe("Submission Fields")
     }); //close describe("createUser")
+
+    describe("updatePassword", () => {
+        let user: IUser;
+        let passwordSubmission = {
+            currentPassword: "M0N3y!",
+            newPassword: "thedr3@mis0v3r",
+            confirmNewPassword: "thedr3@mis0v3r"
+        };
+
+        beforeAll((done) => {
+            let submission: ICreateUserValues = {
+                [IUserFormKeys.FirstName]: faker.name.firstName(),
+                [IUserFormKeys.LastName]: faker.name.lastName(),
+                [IUserFormKeys.Username]: "thedirtynil",
+                [IUserFormKeys.Email]: faker.internet.email(),
+                [IUserFormKeys.Password]: passwordSubmission.currentPassword,
+                [IUserFormKeys.ConfirmPassword]: passwordSubmission.currentPassword
+            };
+
+            return new UserService(dbConnection).createUser(submission).then((userRecord) => {
+                user = userRecord;
+                done();
+            });
+        });
+
+        test("successfully updates a user's password", () => {
+            return new UserService(dbConnection)
+                .updatePassword(user.userNo, passwordSubmission)
+                .then(() => {
+                    return dbConnection(tableName)
+                        .first("*")
+                        .where(pk, user.userNo)
+                        .then((rawUser) => {
+                            return bcrypt.compare(
+                                passwordSubmission.newPassword,
+                                rawUser.password,
+                                (error, isMatch) => {
+                                    expect(error).toBe(undefined);
+                                    expect(rawUser.userNo).toEqual(user.userNo);
+                                    expect(isMatch).toEqual(true);
+                                }
+                            );
+                        });
+                });
+        });
+
+        test("throws a bad request error (400) if userNo is undefined", () => {
+            return new UserService(dbConnection)
+                .updatePassword(undefined, passwordSubmission)
+                .catch((error) => {
+                    expect(error.statusCode).toEqual(400);
+                    expect(error.message).toEqual("Bad Request");
+                    expect(error.details).toEqual(
+                        expect.arrayContaining(["Parameter Error: userNo must be a number"])
+                    );
+                });
+        });
+
+        test("throws a bad request error (400) if userNo is null", () => {
+            return new UserService(dbConnection)
+                .updatePassword(null, passwordSubmission)
+                .catch((error) => {
+                    expect(error.statusCode).toEqual(400);
+                    expect(error.message).toEqual("Bad Request");
+                    expect(error.details).toEqual(
+                        expect.arrayContaining(["Parameter Error: userNo must be a number"])
+                    );
+                });
+        });
+
+        test("throws a bad request error (400) if userNo is a string", () => {
+            return new UserService(dbConnection)
+                .updatePassword("123", passwordSubmission)
+                .catch((error) => {
+                    expect(error.statusCode).toEqual(400);
+                    expect(error.message).toEqual("Bad Request");
+                    expect(error.details).toEqual(
+                        expect.arrayContaining(["Parameter Error: userNo must be a number"])
+                    );
+                });
+        });
+
+        test("throws a validation error (422) if 'confirmPassword' doesn't match 'newPassword'", () => {
+            passwordSubmission = {
+                ...passwordSubmission,
+                confirmNewPassword: "theresarumblingandafiredownbelow"
+            };
+
+            return new UserService(dbConnection)
+                .updatePassword(user.userNo, passwordSubmission)
+                .catch((error) => {
+                    expect(error.statusCode).toEqual(422);
+                    expect(error.message).toEqual("Validation Error");
+                    expect(error.details).toEqual(expect.arrayContaining(["Passwords must match"]));
+                });
+        });
+
+        test("throws a not found error (404) if no user is found", () => {
+            const userNo = 9999;
+
+            passwordSubmission = {
+                ...passwordSubmission,
+                newPassword: "everycentanddollar",
+                confirmNewPassword: "everycentanddollar"
+            };
+
+            return new UserService(dbConnection)
+                .updatePassword(userNo, passwordSubmission)
+                .catch((error) => {
+                    expect(error.statusCode).toEqual(404);
+                    expect(error.message).toEqual("Not Found");
+                    expect(error.details).toEqual(
+                        expect.arrayContaining([
+                            `User with a ${pk} of ${userNo} could not be found`
+                        ])
+                    );
+                });
+        });
+    }); // close describe("updatePassword")
 }); // close describe("User Service")

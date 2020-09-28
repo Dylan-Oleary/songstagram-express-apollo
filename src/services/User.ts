@@ -34,6 +34,12 @@ export interface ICreateUserValues {
     confirmPassword: string;
 }
 
+export interface IUpdatePasswordValues {
+    currentPassword: string;
+    newPassword: string;
+    confirmNewPassword: string;
+}
+
 export enum IUserFormKeys {
     FirstName = "firstName",
     LastName = "lastName",
@@ -126,6 +132,28 @@ export const baseUserValidation = {
     }
 } as IFormValidationObject;
 
+const passwordValidation = {
+    [IUserFormKeys.Password]: {
+        isRequired: true,
+        label: IUserFormLabels.Password,
+        check: (value: string) => {
+            if (value.length > 50)
+                return new Error(`${IUserFormLabels.Password} cannot be more than 50 characters`);
+            return undefined;
+        }
+    },
+    [IUserFormKeys.ConfirmPassword]: {
+        isRequired: true,
+        label: IUserFormLabels.ConfirmPassword,
+        check: (value: string, submission: IFormSubmission) => {
+            if (value !== submission[IUserFormKeys.Password])
+                return new Error("Passwords must match");
+
+            return undefined;
+        }
+    }
+} as IFormValidationObject;
+
 const BCRYPT_HASH_SALT_ROUNDS = 10;
 
 /**
@@ -143,32 +171,12 @@ class UserService {
 
     /**
      * Creates a new user
-     * @param user User information used to create a new user
+     * @param userSubmission User information used to create a new user
      */
     async createUser(userSubmission: ICreateUserValues): Promise<IUser> {
         const createUserValidation = {
             ...baseUserValidation,
-            [IUserFormKeys.Password]: {
-                isRequired: true,
-                label: IUserFormLabels.Password,
-                check: (value: string) => {
-                    if (value.length > 50)
-                        return new Error(
-                            `${IUserFormLabels.Password} cannot be more than 50 characters`
-                        );
-                    return undefined;
-                }
-            },
-            [IUserFormKeys.ConfirmPassword]: {
-                isRequired: true,
-                label: IUserFormLabels.ConfirmPassword,
-                check: (value: string, submission: IFormSubmission) => {
-                    if (value !== submission[IUserFormKeys.Password])
-                        return new Error("Passwords must match");
-
-                    return undefined;
-                }
-            }
+            ...passwordValidation
         } as IFormValidationObject;
 
         const submissionErrors = validateSubmission(createUserValidation, userSubmission);
@@ -218,7 +226,7 @@ class UserService {
 
                 return Promise.reject({
                     statusCode: 500,
-                    message: "Internal Error",
+                    message: "Internal Server Error",
                     details: []
                 });
             });
@@ -255,11 +263,85 @@ class UserService {
     }
 
     /**
+     * Update a user's password
+     * @param userNo The user number used to look for the correct user
+     * @param submission An object containing the user's current and new password information
+     */
+    updatePassword(userNo: number, submission: IUpdatePasswordValues): Promise<IUser> {
+        const { currentPassword, newPassword, confirmNewPassword } = submission;
+
+        if (!userNo || typeof userNo !== "number") {
+            return Promise.reject({
+                statusCode: 400,
+                message: "Bad Request",
+                details: ["Parameter Error: userNo must be a number"]
+            });
+        }
+
+        if (newPassword !== confirmNewPassword) {
+            return Promise.reject({
+                statusCode: 422,
+                message: "Validation Error",
+                details: ["Passwords must match"]
+            });
+        }
+
+        return this.dbConnection(this.table)
+            .first("*")
+            .where(this.pk, userNo)
+            .then((userRecord) => {
+                if (!userRecord)
+                    throw {
+                        statusCode: 404,
+                        message: "Not Found",
+                        details: [`User with a ${this.pk} of ${userNo} could not be found`]
+                    };
+
+                return this.comparePasswords(currentPassword, userRecord.password).then(
+                    async () => {
+                        const hashedPassword = await this.hashPassword(newPassword);
+
+                        return this.dbConnection(this.table)
+                            .first("*")
+                            .where(this.pk, userNo)
+                            .update({ password: hashedPassword });
+                    }
+                );
+            });
+    }
+
+    /**
      * Hashes a plain text password
      * @param password Plain text password to hash
      */
     private hashPassword(password: string): Promise<string> {
         return bcrypt.hash(password, BCRYPT_HASH_SALT_ROUNDS);
+    }
+
+    /**
+     * Confirms a match between a plain text password and an encrypted password
+     * @param password A password to compare against the encrypted password
+     * @param encryptedPassword The user's encrypted password
+     */
+    private comparePasswords(password: string, encryptedPassword: string): Promise<boolean> {
+        return new Promise((resolve, reject) => {
+            return bcrypt.compare(password, encryptedPassword, (error, isMatch) => {
+                if (error) {
+                    return reject({
+                        statusCode: 500,
+                        message: error.message || "Internal Server Error"
+                    });
+                }
+
+                return isMatch
+                    ? resolve(true)
+                    : reject({
+                          statusCode: 401,
+                          message: "Invalid Credentials",
+                          details: ["Password does not match hashed password"]
+                      });
+            });
+        });
     }
 }
 
