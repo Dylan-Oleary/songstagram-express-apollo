@@ -23,6 +23,7 @@ export interface IUser {
     createdDate: Date;
     lastUpdated: Date;
     lastLoginDate?: Date;
+    password?: string;
 }
 
 export interface ICreateUserValues {
@@ -232,6 +233,23 @@ class UserService {
             });
     }
 
+    deleteUser(userNo: number): Promise<Boolean> {
+        if (!userNo || typeof userNo !== "number") {
+            return Promise.reject({
+                statusCode: 400,
+                message: "Bad Request",
+                details: ["Parameter Error: userNo must be a number"]
+            });
+        }
+
+        return this.getUserByUserNo(userNo).then((userRecord: IUser) => {
+            return this.dbConnection(this.table)
+                .update({ isDeleted: true })
+                .where(this.pk, userRecord.userNo)
+                .then(() => true);
+        });
+    }
+
     /**
      * Fetches a user record by using `userNo` as a lookup parameter
      * @param userNo The user number used to look for the correct user
@@ -297,7 +315,9 @@ class UserService {
                         details: [`User with a ${this.pk} of ${userNo} could not be found`]
                     };
 
-                return this.comparePasswords(currentPassword, userRecord.password).then(
+                console.log(userRecord);
+
+                return this.comparePasswords(currentPassword, userRecord.password!).then(
                     async () => {
                         const hashedPassword = await this.hashPassword(newPassword);
 
