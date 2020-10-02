@@ -233,6 +233,10 @@ class UserService {
             });
     }
 
+    /**
+     * Performs a soft delete on a user record
+     * @param userNo The user number used to look for the correct user
+     */
     deleteUser(userNo: number): Promise<Boolean> {
         if (!userNo || typeof userNo !== "number") {
             return Promise.reject({
