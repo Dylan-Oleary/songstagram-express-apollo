@@ -2,12 +2,11 @@ export interface IFormSubmission {
     [key: string]: any;
 }
 
-export interface IFormValidationObject {
-    [key: string]: IFormValidationField;
-}
+export type IFormValidation = IFormValidationField[];
 
 export interface IFormValidationField {
-    isRequired: boolean;
+    isRequired?: boolean;
+    key: string;
     label: string;
     check: (value: string, submission?: IFormSubmission) => Error | undefined;
 }
@@ -19,7 +18,7 @@ export interface IFormValidationError {
 }
 
 export const validateSubmission: (
-    validation: IFormValidationObject,
+    validation: IFormValidation,
     submission: IFormSubmission
 ) => IFormValidationError | undefined = (validation, submission) => {
     let submissionErrors: string[] = [];
@@ -28,25 +27,18 @@ export const validateSubmission: (
         if (submission[key] === undefined || submission[key] === null) delete submission[key];
     });
 
-    Object.keys(validation).forEach((validationKey) => {
-        if (submission[validationKey]) {
-            if (
-                validation[validationKey].isRequired &&
-                String(submission[validationKey]).trim().length === 0
-            )
-                submissionErrors.push(`${validation[validationKey].label} is a required field`);
+    validation.forEach(({ check, isRequired, key, label }) => {
+        if (submission[key]) {
+            if (isRequired && String(submission[key]).trim().length === 0)
+                submissionErrors.push(`${label} is a required field`);
 
-            const fieldError = validation[validationKey].check(
-                submission[validationKey],
-                submission
-            );
+            const fieldError = check(submission[key], submission);
 
             if (fieldError && fieldError.message) {
                 submissionErrors.push(fieldError.message);
             }
         } else {
-            if (validation[validationKey].isRequired)
-                submissionErrors.push(`${validation[validationKey].label} is a required field`);
+            if (isRequired) submissionErrors.push(`${label} is a required field`);
         }
     });
 

@@ -6,8 +6,8 @@ import {
     ICreateUserValues,
     IUpdateUserValues,
     IUser,
-    IUserFormKeys,
-    IUserFormLabels,
+    IUserColumnKeys,
+    IUserColumnLabels,
     UserService
 } from "../User";
 
@@ -34,12 +34,12 @@ describe("User Service", () => {
     const userService = new UserService(dbConnection);
     const buildValidSubmission: (username: string) => ICreateUserValues = (username) => {
         const submission: ICreateUserValues = {
-            [IUserFormKeys.FirstName]: faker.name.firstName(),
-            [IUserFormKeys.LastName]: faker.name.lastName(),
-            [IUserFormKeys.Username]: username,
-            [IUserFormKeys.Email]: faker.internet.email(),
-            [IUserFormKeys.Password]: "M0N3y!",
-            [IUserFormKeys.ConfirmPassword]: "M0N3y!"
+            [IUserColumnKeys.FirstName]: faker.name.firstName(),
+            [IUserColumnKeys.LastName]: faker.name.lastName(),
+            [IUserColumnKeys.Username]: username,
+            [IUserColumnKeys.Email]: faker.internet.email(),
+            [IUserColumnKeys.Password]: "M0N3y!",
+            [IUserColumnKeys.ConfirmPassword]: "M0N3y!"
         };
 
         return submission;
@@ -136,10 +136,10 @@ describe("User Service", () => {
                     expect(userRecord).toHaveProperty(key);
                 });
                 [
-                    IUserFormKeys.FirstName,
-                    IUserFormKeys.LastName,
-                    IUserFormKeys.Username,
-                    IUserFormKeys.Email
+                    IUserColumnKeys.FirstName,
+                    IUserColumnKeys.LastName,
+                    IUserColumnKeys.Username,
+                    IUserColumnKeys.Email
                 ].forEach((key) => {
                     expect(userRecord[key]).toEqual(submission[key]);
                 });
@@ -160,8 +160,8 @@ describe("User Service", () => {
 
         describe("Submission Fields", () => {
             [
-                { key: IUserFormKeys.FirstName, label: IUserFormLabels.FirstName },
-                { key: IUserFormKeys.LastName, label: IUserFormLabels.LastName }
+                { key: IUserColumnKeys.FirstName, label: IUserColumnLabels.FirstName },
+                { key: IUserColumnKeys.LastName, label: IUserColumnLabels.LastName }
             ].forEach(({ key, label }) => {
                 describe(`${label}`, () => {
                     test("throws a validation error (422) if its value is undefined", () => {
@@ -230,7 +230,7 @@ describe("User Service", () => {
                 test("throws a validation error (422) if its value is undefined", () => {
                     const invalidSubmission = {
                         ...submission,
-                        [IUserFormKeys.Username]: undefined
+                        [IUserColumnKeys.Username]: undefined
                     };
 
                     return new UserService(dbConnection)
@@ -240,7 +240,7 @@ describe("User Service", () => {
                             expect(error.message).toEqual("Validation Error");
                             expect(error.details).toEqual(
                                 expect.arrayContaining([
-                                    `${IUserFormLabels.Username} is a required field`
+                                    `${IUserColumnLabels.Username} is a required field`
                                 ])
                             );
                         });
@@ -249,7 +249,7 @@ describe("User Service", () => {
                 test("throws a validation error (422) if its value is null", () => {
                     const invalidSubmission = {
                         ...submission,
-                        [IUserFormKeys.Username]: null
+                        [IUserColumnKeys.Username]: null
                     };
 
                     return new UserService(dbConnection)
@@ -259,7 +259,7 @@ describe("User Service", () => {
                             expect(error.message).toEqual("Validation Error");
                             expect(error.details).toEqual(
                                 expect.arrayContaining([
-                                    `${IUserFormLabels.Username} is a required field`
+                                    `${IUserColumnLabels.Username} is a required field`
                                 ])
                             );
                         });
@@ -268,7 +268,7 @@ describe("User Service", () => {
                 test("throws a validation error (422) if its value is empty", () => {
                     const invalidSubmission = {
                         ...submission,
-                        [IUserFormKeys.Username]: ""
+                        [IUserColumnKeys.Username]: ""
                     };
 
                     return new UserService(dbConnection)
@@ -278,7 +278,7 @@ describe("User Service", () => {
                             expect(error.message).toEqual("Validation Error");
                             expect(error.details).toEqual(
                                 expect.arrayContaining([
-                                    `${IUserFormLabels.Username} is a required field`
+                                    `${IUserColumnLabels.Username} is a required field`
                                 ])
                             );
                         });
@@ -287,7 +287,7 @@ describe("User Service", () => {
                 test("throws a validation error (422) if its value is too long", () => {
                     const invalidSubmission = {
                         ...submission,
-                        [IUserFormKeys.Username]: new Array(32).join("x")
+                        [IUserColumnKeys.Username]: new Array(32).join("x")
                     };
 
                     return new UserService(dbConnection)
@@ -297,7 +297,7 @@ describe("User Service", () => {
                             expect(error.message).toEqual("Validation Error");
                             expect(error.details).toEqual(
                                 expect.arrayContaining([
-                                    `${IUserFormLabels.Username} cannot be more than 30 characters`
+                                    `${IUserColumnLabels.Username} cannot be more than 30 characters`
                                 ])
                             );
                         });
@@ -314,7 +314,7 @@ describe("User Service", () => {
                     test(`throws a validation error (422) if the username is invalid. Username: ${username}`, () => {
                         let invalidSubmission = {
                             ...submission,
-                            [IUserFormKeys.Username]: username
+                            [IUserColumnKeys.Username]: username
                         };
 
                         return new UserService(dbConnection)
@@ -324,7 +324,7 @@ describe("User Service", () => {
                                 expect(error.message).toEqual("Validation Error");
                                 expect(error.details).toEqual(
                                     expect.arrayContaining([
-                                        `${IUserFormLabels.Username} is invalid`
+                                        `${IUserColumnLabels.Username} is invalid`
                                     ])
                                 );
                             });
@@ -335,22 +335,22 @@ describe("User Service", () => {
                     const email = faker.internet.email();
                     let newSubmission: ICreateUserValues = {
                         ...submission,
-                        [IUserFormKeys.Email]: email,
-                        [IUserFormKeys.Username]: "conflict"
+                        [IUserColumnKeys.Email]: email,
+                        [IUserColumnKeys.Username]: "conflict"
                     };
 
                     return new UserService(dbConnection).createUser(newSubmission).then(() => {
                         return new UserService(dbConnection)
                             .createUser({
                                 ...newSubmission,
-                                [IUserFormKeys.Email]: `xyz${email}`
+                                [IUserColumnKeys.Email]: `xyz${email}`
                             })
                             .catch((error) => {
                                 expect(error.statusCode).toEqual(409);
                                 expect(error.message).toEqual("Conflict Error");
                                 expect(error.details).toEqual(
                                     expect.arrayContaining([
-                                        `${IUserFormLabels.Username} is already in use`
+                                        `${IUserColumnLabels.Username} is already in use`
                                     ])
                                 );
                             });
@@ -362,7 +362,7 @@ describe("User Service", () => {
                 test("throws a validation error (422) if its value is undefined", () => {
                     const invalidSubmission = {
                         ...submission,
-                        [IUserFormKeys.Email]: undefined
+                        [IUserColumnKeys.Email]: undefined
                     };
 
                     return new UserService(dbConnection)
@@ -372,7 +372,7 @@ describe("User Service", () => {
                             expect(error.message).toEqual("Validation Error");
                             expect(error.details).toEqual(
                                 expect.arrayContaining([
-                                    `${IUserFormLabels.Email} is a required field`
+                                    `${IUserColumnLabels.Email} is a required field`
                                 ])
                             );
                         });
@@ -381,7 +381,7 @@ describe("User Service", () => {
                 test("throws a validation error (422) if its value is null", () => {
                     const invalidSubmission = {
                         ...submission,
-                        [IUserFormKeys.Email]: null
+                        [IUserColumnKeys.Email]: null
                     };
 
                     return new UserService(dbConnection)
@@ -391,7 +391,7 @@ describe("User Service", () => {
                             expect(error.message).toEqual("Validation Error");
                             expect(error.details).toEqual(
                                 expect.arrayContaining([
-                                    `${IUserFormLabels.Email} is a required field`
+                                    `${IUserColumnLabels.Email} is a required field`
                                 ])
                             );
                         });
@@ -400,7 +400,7 @@ describe("User Service", () => {
                 test("throws a validation error (422) if its value is empty", () => {
                     const invalidSubmission = {
                         ...submission,
-                        [IUserFormKeys.Email]: ""
+                        [IUserColumnKeys.Email]: ""
                     };
 
                     return new UserService(dbConnection)
@@ -410,7 +410,7 @@ describe("User Service", () => {
                             expect(error.message).toEqual("Validation Error");
                             expect(error.details).toEqual(
                                 expect.arrayContaining([
-                                    `${IUserFormLabels.Email} is a required field`
+                                    `${IUserColumnLabels.Email} is a required field`
                                 ])
                             );
                         });
@@ -419,7 +419,7 @@ describe("User Service", () => {
                 test("throws a validation error (422) if its value is too long", () => {
                     const invalidSubmission = {
                         ...submission,
-                        [IUserFormKeys.Email]: new Array(257).join("x")
+                        [IUserColumnKeys.Email]: new Array(257).join("x")
                     };
 
                     return new UserService(dbConnection)
@@ -429,7 +429,7 @@ describe("User Service", () => {
                             expect(error.message).toEqual("Validation Error");
                             expect(error.details).toEqual(
                                 expect.arrayContaining([
-                                    `${IUserFormLabels.Email} cannot be more than 255 characters`
+                                    `${IUserColumnLabels.Email} cannot be more than 255 characters`
                                 ])
                             );
                         });
@@ -453,7 +453,7 @@ describe("User Service", () => {
                     test(`throws a validation error (422) if the email is invalid. Email: ${invalidEmail}`, () => {
                         const invalidSubmission = {
                             ...submission,
-                            [IUserFormKeys.Email]: invalidEmail
+                            [IUserColumnKeys.Email]: invalidEmail
                         };
 
                         return new UserService(dbConnection)
@@ -462,7 +462,9 @@ describe("User Service", () => {
                                 expect(error.statusCode).toEqual(422);
                                 expect(error.message).toEqual("Validation Error");
                                 expect(error.details).toEqual(
-                                    expect.arrayContaining([`${IUserFormLabels.Email} is invalid`])
+                                    expect.arrayContaining([
+                                        `${IUserColumnLabels.Email} is invalid`
+                                    ])
                                 );
                             });
                     });
@@ -472,22 +474,22 @@ describe("User Service", () => {
                     const email = faker.internet.email();
                     let newSubmission: ICreateUserValues = {
                         ...submission,
-                        [IUserFormKeys.Email]: email,
-                        [IUserFormKeys.Username]: "newuser"
+                        [IUserColumnKeys.Email]: email,
+                        [IUserColumnKeys.Username]: "newuser"
                     };
 
                     return new UserService(dbConnection).createUser(newSubmission).then(() => {
                         return new UserService(dbConnection)
                             .createUser({
                                 ...newSubmission,
-                                [IUserFormKeys.Username]: "newuser1"
+                                [IUserColumnKeys.Username]: "newuser1"
                             })
                             .catch((error) => {
                                 expect(error.statusCode).toEqual(409);
                                 expect(error.message).toEqual("Conflict Error");
                                 expect(error.details).toEqual(
                                     expect.arrayContaining([
-                                        `${IUserFormLabels.Email} is already in use`
+                                        `${IUserColumnLabels.Email} is already in use`
                                     ])
                                 );
                             });
@@ -499,7 +501,7 @@ describe("User Service", () => {
                 test("throws a validation error (422) when its value is undefined", () => {
                     const invalidSubmission = {
                         ...submission,
-                        [IUserFormKeys.Password]: undefined
+                        [IUserColumnKeys.Password]: undefined
                     };
 
                     return new UserService(dbConnection)
@@ -509,7 +511,7 @@ describe("User Service", () => {
                             expect(error.message).toEqual("Validation Error");
                             expect(error.details).toEqual(
                                 expect.arrayContaining([
-                                    `${IUserFormLabels.Password} is a required field`
+                                    `${IUserColumnLabels.Password} is a required field`
                                 ])
                             );
                         });
@@ -518,7 +520,7 @@ describe("User Service", () => {
                 test("throws a validation error (422) when its value is null", () => {
                     const invalidSubmission = {
                         ...submission,
-                        [IUserFormKeys.Password]: null
+                        [IUserColumnKeys.Password]: null
                     };
 
                     return new UserService(dbConnection)
@@ -528,7 +530,7 @@ describe("User Service", () => {
                             expect(error.message).toEqual("Validation Error");
                             expect(error.details).toEqual(
                                 expect.arrayContaining([
-                                    `${IUserFormLabels.Password} is a required field`
+                                    `${IUserColumnLabels.Password} is a required field`
                                 ])
                             );
                         });
@@ -537,7 +539,7 @@ describe("User Service", () => {
                 test("throws a validation error (422) when its value is empty", () => {
                     const invalidSubmission = {
                         ...submission,
-                        [IUserFormKeys.Password]: ""
+                        [IUserColumnKeys.Password]: ""
                     };
 
                     return new UserService(dbConnection)
@@ -547,7 +549,7 @@ describe("User Service", () => {
                             expect(error.message).toEqual("Validation Error");
                             expect(error.details).toEqual(
                                 expect.arrayContaining([
-                                    `${IUserFormLabels.Password} is a required field`
+                                    `${IUserColumnLabels.Password} is a required field`
                                 ])
                             );
                         });
@@ -556,7 +558,7 @@ describe("User Service", () => {
                 test("throws a validation error (422) when its value is too long", () => {
                     const invalidSubmission = {
                         ...submission,
-                        [IUserFormKeys.Password]: new Array(52).join("x")
+                        [IUserColumnKeys.Password]: new Array(52).join("x")
                     };
 
                     return new UserService(dbConnection)
@@ -566,7 +568,7 @@ describe("User Service", () => {
                             expect(error.message).toEqual("Validation Error");
                             expect(error.details).toEqual(
                                 expect.arrayContaining([
-                                    `${IUserFormLabels.Password} cannot be more than 50 characters`
+                                    `${IUserColumnLabels.Password} cannot be more than 50 characters`
                                 ])
                             );
                         });
@@ -577,7 +579,7 @@ describe("User Service", () => {
                 test("throws a validation error (422) when its value is undefined", () => {
                     const invalidSubmission = {
                         ...submission,
-                        [IUserFormKeys.ConfirmPassword]: undefined
+                        [IUserColumnKeys.ConfirmPassword]: undefined
                     };
 
                     return new UserService(dbConnection)
@@ -587,7 +589,7 @@ describe("User Service", () => {
                             expect(error.message).toEqual("Validation Error");
                             expect(error.details).toEqual(
                                 expect.arrayContaining([
-                                    `${IUserFormLabels.ConfirmPassword} is a required field`
+                                    `${IUserColumnLabels.ConfirmPassword} is a required field`
                                 ])
                             );
                         });
@@ -596,7 +598,7 @@ describe("User Service", () => {
                 test("throws a validation error (422) when its value is null", () => {
                     const invalidSubmission = {
                         ...submission,
-                        [IUserFormKeys.ConfirmPassword]: null
+                        [IUserColumnKeys.ConfirmPassword]: null
                     };
 
                     return new UserService(dbConnection)
@@ -606,7 +608,7 @@ describe("User Service", () => {
                             expect(error.message).toEqual("Validation Error");
                             expect(error.details).toEqual(
                                 expect.arrayContaining([
-                                    `${IUserFormLabels.ConfirmPassword} is a required field`
+                                    `${IUserColumnLabels.ConfirmPassword} is a required field`
                                 ])
                             );
                         });
@@ -615,7 +617,7 @@ describe("User Service", () => {
                 test("throws a validation error (422) when its value is empty", () => {
                     const invalidSubmission = {
                         ...submission,
-                        [IUserFormKeys.ConfirmPassword]: ""
+                        [IUserColumnKeys.ConfirmPassword]: ""
                     };
 
                     return new UserService(dbConnection)
@@ -625,7 +627,7 @@ describe("User Service", () => {
                             expect(error.message).toEqual("Validation Error");
                             expect(error.details).toEqual(
                                 expect.arrayContaining([
-                                    `${IUserFormLabels.ConfirmPassword} is a required field`
+                                    `${IUserColumnLabels.ConfirmPassword} is a required field`
                                 ])
                             );
                         });
@@ -634,8 +636,8 @@ describe("User Service", () => {
                 test("throws a validation error (422) when its value does match the 'Password' value", () => {
                     const invalidSubmission = {
                         ...submission,
-                        [IUserFormKeys.Password]: "supersecretpassword",
-                        [IUserFormKeys.ConfirmPassword]: "password"
+                        [IUserColumnKeys.Password]: "supersecretpassword",
+                        [IUserColumnKeys.ConfirmPassword]: "password"
                     };
 
                     return new UserService(dbConnection)
@@ -667,8 +669,8 @@ describe("User Service", () => {
                 userTwo = newUserTwo;
 
                 [submissionOne, submissionTwo].forEach((submission) => {
-                    delete submission[IUserFormKeys.Password];
-                    delete submission[IUserFormKeys.ConfirmPassword];
+                    delete submission[IUserColumnKeys.Password];
+                    delete submission[IUserColumnKeys.ConfirmPassword];
                 });
 
                 done();
@@ -678,10 +680,10 @@ describe("User Service", () => {
         test("successfully updates a user", () => {
             const validSubmission: IUpdateUserValues = {
                 ...submissionOne,
-                [IUserFormKeys.FirstName]: "Eddie",
-                [IUserFormKeys.LastName]: "Van Halen",
-                [IUserFormKeys.Bio]: "I invented tapping",
-                [IUserFormKeys.ProfilePicture]: "www.vanhalen.com/super-shredder"
+                [IUserColumnKeys.FirstName]: "Eddie",
+                [IUserColumnKeys.LastName]: "Van Halen",
+                [IUserColumnKeys.Bio]: "I invented tapping",
+                [IUserColumnKeys.ProfilePicture]: "www.vanhalen.com/super-shredder"
             };
 
             return userService.updateUser(userOne.userNo, validSubmission).then((userRecord) => {
@@ -697,14 +699,14 @@ describe("User Service", () => {
         test("throws a conflict error (409) if an email is passed that is already taken", () => {
             const invalidSubmission = {
                 ...submissionTwo,
-                [IUserFormKeys.Email]: userOne.email
+                [IUserColumnKeys.Email]: userOne.email
             };
 
             return userService.updateUser(userTwo.userNo, invalidSubmission).catch((error) => {
                 expect(error.statusCode).toEqual(409);
                 expect(error.message).toEqual("Conflict Error");
                 expect(error.details).toEqual(
-                    expect.arrayContaining([`${IUserFormLabels.Email} is already in use`])
+                    expect.arrayContaining([`${IUserColumnLabels.Email} is already in use`])
                 );
             });
         });
@@ -712,14 +714,14 @@ describe("User Service", () => {
         test("throws a conflict error (409) if a username is passed that is already taken", () => {
             const invalidSubmission = {
                 ...submissionTwo,
-                [IUserFormKeys.Username]: userOne.username
+                [IUserColumnKeys.Username]: userOne.username
             };
 
             return userService.updateUser(userTwo.userNo, invalidSubmission).catch((error) => {
                 expect(error.statusCode).toEqual(409);
                 expect(error.message).toEqual("Conflict Error");
                 expect(error.details).toEqual(
-                    expect.arrayContaining([`${IUserFormLabels.Username} is already in use`])
+                    expect.arrayContaining([`${IUserColumnLabels.Username} is already in use`])
                 );
             });
         });
@@ -727,10 +729,10 @@ describe("User Service", () => {
         test("throws a not found error (404) if no user is found", () => {
             const validSubmission: IUpdateUserValues = {
                 ...submissionOne,
-                [IUserFormKeys.FirstName]: "Eddie",
-                [IUserFormKeys.LastName]: "Van Halen",
-                [IUserFormKeys.Bio]: "I invented tapping",
-                [IUserFormKeys.ProfilePicture]: "www.vanhalen.com/super-shredder"
+                [IUserColumnKeys.FirstName]: "Eddie",
+                [IUserColumnKeys.LastName]: "Van Halen",
+                [IUserColumnKeys.Bio]: "I invented tapping",
+                [IUserColumnKeys.ProfilePicture]: "www.vanhalen.com/super-shredder"
             };
 
             return userService.updateUser(900, validSubmission).catch((error) => {
