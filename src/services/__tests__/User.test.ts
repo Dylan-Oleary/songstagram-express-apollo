@@ -55,110 +55,10 @@ describe("User Service", () => {
         done();
     });
 
-    describe("getUserByUserNo", () => {
-        let user;
-        let submission = buildValidSubmission("breakfastwithroxy");
+    describe("Column Validation", () => {
+        describe("Create", () => {
+            let submission = buildValidSubmission("saved_by-the-bell");
 
-        beforeAll(async (done) => {
-            return userService.createUser(submission).then((userRecord) => {
-                user = userRecord;
-                done();
-            });
-        });
-
-        test("returns a user record", () => {
-            return userService.getUserByUserNo(user.userNo).then((userRecord) => {
-                userRecordKeys.forEach((key) => {
-                    expect(userRecord).toHaveProperty(key);
-                });
-                expect(userRecord).toEqual(user);
-            });
-        });
-
-        test("does not return a user's password", () => {
-            return userService.getUserByUserNo(user.userNo).then((userRecord) => {
-                expect(userRecord).not.toHaveProperty("password");
-            });
-        });
-
-        test("throws a not found error (404) if no user is found", () => {
-            const invalidUserNo = 867;
-
-            return userService.getUserByUserNo(invalidUserNo).catch((error) => {
-                expect(error.statusCode).toEqual(404);
-                expect(error.message).toEqual("Not Found");
-                expect(error.details).toEqual(
-                    expect.arrayContaining([
-                        `User with a ${pk} of ${invalidUserNo} could not be found`
-                    ])
-                );
-            });
-        });
-
-        test("throws a bad request error (400) if userNo is undefined", async () => {
-            return userService.getUserByUserNo(undefined).catch((error) => {
-                expect(error.statusCode).toEqual(400);
-                expect(error.message).toEqual("Bad Request");
-                expect(error.details).toEqual(
-                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
-                );
-            });
-        });
-
-        test("throws a bad request error (400) if userNo is null", async () => {
-            return userService.getUserByUserNo(null).catch((error) => {
-                expect(error.statusCode).toEqual(400);
-                expect(error.message).toEqual("Bad Request");
-                expect(error.details).toEqual(
-                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
-                );
-            });
-        });
-
-        test("throws a bad request error (400) if userNo is a string", async () => {
-            return userService.getUserByUserNo("123").catch((error) => {
-                expect(error.statusCode).toEqual(400);
-                expect(error.message).toEqual("Bad Request");
-                expect(error.details).toEqual(
-                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
-                );
-            });
-        });
-    }); // close describe("getUserByUserNo")
-
-    describe("createUser", () => {
-        let newUser;
-        let submission = buildValidSubmission("spaghetti_strings");
-
-        test("successfully creates a user", () => {
-            return userService.createUser(submission).then((userRecord) => {
-                userRecordKeys.forEach((key) => {
-                    expect(userRecord).toHaveProperty(key);
-                });
-                [
-                    IUserColumnKeys.FirstName,
-                    IUserColumnKeys.LastName,
-                    IUserColumnKeys.Username,
-                    IUserColumnKeys.Email
-                ].forEach((key) => {
-                    expect(userRecord[key]).toEqual(submission[key]);
-                });
-
-                newUser = userRecord;
-            });
-        });
-
-        [
-            { key: "followerCount", label: "follower" },
-            { key: "followingCount", label: "following" },
-            { key: "postCount", label: "post" }
-        ].forEach(({ key, label }) => {
-            test(`successfully creates a user with the correct ${label} count`, () => {
-                expect(newUser[key]).toEqual(0);
-            });
-        });
-
-        describe("Submission Fields", () => {
             [
                 { key: IUserColumnKeys.FirstName, label: IUserColumnLabels.FirstName },
                 { key: IUserColumnKeys.LastName, label: IUserColumnLabels.LastName }
@@ -330,32 +230,6 @@ describe("User Service", () => {
                             });
                     });
                 }); // close forEach
-
-                test("throws a conflict error (409) if the username is aleady in use", () => {
-                    const email = faker.internet.email();
-                    let newSubmission: ICreateUserValues = {
-                        ...submission,
-                        [IUserColumnKeys.Email]: email,
-                        [IUserColumnKeys.Username]: "conflict"
-                    };
-
-                    return new UserService(dbConnection).createUser(newSubmission).then(() => {
-                        return new UserService(dbConnection)
-                            .createUser({
-                                ...newSubmission,
-                                [IUserColumnKeys.Email]: `xyz${email}`
-                            })
-                            .catch((error) => {
-                                expect(error.statusCode).toEqual(409);
-                                expect(error.message).toEqual("Conflict Error");
-                                expect(error.details).toEqual(
-                                    expect.arrayContaining([
-                                        `${IUserColumnLabels.Username} is already in use`
-                                    ])
-                                );
-                            });
-                    });
-                });
             }); // close describe("Username")
 
             describe("Email Address", () => {
@@ -464,32 +338,6 @@ describe("User Service", () => {
                                 expect(error.details).toEqual(
                                     expect.arrayContaining([
                                         `${IUserColumnLabels.Email} is invalid`
-                                    ])
-                                );
-                            });
-                    });
-                });
-
-                test("throws a conflict error (409) if the email is aleady in use", () => {
-                    const email = faker.internet.email();
-                    let newSubmission: ICreateUserValues = {
-                        ...submission,
-                        [IUserColumnKeys.Email]: email,
-                        [IUserColumnKeys.Username]: "newuser"
-                    };
-
-                    return new UserService(dbConnection).createUser(newSubmission).then(() => {
-                        return new UserService(dbConnection)
-                            .createUser({
-                                ...newSubmission,
-                                [IUserColumnKeys.Username]: "newuser1"
-                            })
-                            .catch((error) => {
-                                expect(error.statusCode).toEqual(409);
-                                expect(error.message).toEqual("Conflict Error");
-                                expect(error.details).toEqual(
-                                    expect.arrayContaining([
-                                        `${IUserColumnLabels.Email} is already in use`
                                     ])
                                 );
                             });
@@ -651,7 +499,320 @@ describe("User Service", () => {
                         });
                 });
             }); // close describe("Confirm Password")
-        }); // close describe("Submission Fields")
+        }); // close describe("Create")
+
+        describe("Edit", () => {
+            let submission = buildValidSubmission("superbad");
+
+            [
+                { key: IUserColumnKeys.FirstName, label: IUserColumnLabels.FirstName },
+                { key: IUserColumnKeys.LastName, label: IUserColumnLabels.LastName }
+            ].forEach(({ key, label }) => {
+                describe(`${label}`, () => {
+                    test("throws a validation error (422) if its value is too long", () => {
+                        const invalidSubmission = {
+                            ...submission,
+                            [key]: new Array(257).join("x")
+                        };
+
+                        return new UserService(dbConnection)
+                            .updateUser(1, invalidSubmission)
+                            .catch((error) => {
+                                expect(error.statusCode).toEqual(422);
+                                expect(error.message).toEqual("Validation Error");
+                                expect(error.details).toEqual(
+                                    expect.arrayContaining([
+                                        `${label} cannot be more than 255 characters`
+                                    ])
+                                );
+                            });
+                    });
+                }); // close describe("First Name / Last Name")
+            }); // close forEach
+
+            describe("Username", () => {
+                test("throws a validation error (422) if its value is too long", () => {
+                    const invalidSubmission = {
+                        ...submission,
+                        [IUserColumnKeys.Username]: new Array(32).join("x")
+                    };
+
+                    return new UserService(dbConnection)
+                        .updateUser(1, invalidSubmission)
+                        .catch((error) => {
+                            expect(error.statusCode).toEqual(422);
+                            expect(error.message).toEqual("Validation Error");
+                            expect(error.details).toEqual(
+                                expect.arrayContaining([
+                                    `${IUserColumnLabels.Username} cannot be more than 30 characters`
+                                ])
+                            );
+                        });
+                });
+
+                [
+                    "-breakfastwithroxy",
+                    "jack@thedals",
+                    "<script>Inject_me!</script>",
+                    "follow.me",
+                    "protest'the'hero",
+                    "I_LOVE+44"
+                ].forEach((username) => {
+                    test(`throws a validation error (422) if the username is invalid. Username: ${username}`, () => {
+                        let invalidSubmission = {
+                            ...submission,
+                            [IUserColumnKeys.Username]: username
+                        };
+
+                        return new UserService(dbConnection)
+                            .updateUser(1, invalidSubmission)
+                            .catch((error) => {
+                                expect(error.statusCode).toEqual(422);
+                                expect(error.message).toEqual("Validation Error");
+                                expect(error.details).toEqual(
+                                    expect.arrayContaining([
+                                        `${IUserColumnLabels.Username} is invalid`
+                                    ])
+                                );
+                            });
+                    });
+                }); // close forEach
+            }); // close describe("Username")
+
+            describe("Email Address", () => {
+                test("throws a validation error (422) if its value is too long", () => {
+                    const invalidSubmission = {
+                        ...submission,
+                        [IUserColumnKeys.Email]: new Array(257).join("x")
+                    };
+
+                    return new UserService(dbConnection)
+                        .updateUser(1, invalidSubmission)
+                        .catch((error) => {
+                            expect(error.statusCode).toEqual(422);
+                            expect(error.message).toEqual("Validation Error");
+                            expect(error.details).toEqual(
+                                expect.arrayContaining([
+                                    `${IUserColumnLabels.Email} cannot be more than 255 characters`
+                                ])
+                            );
+                        });
+                });
+
+                [
+                    "plainaddress",
+                    "#@%^%#$@#$@#.com",
+                    "@example.com",
+                    "Joe Smith <email@example.com>",
+                    "email.example.com",
+                    "email@example@example.com",
+                    ".email@example.com",
+                    "email.@example.com",
+                    "email..email@example.com",
+                    "email@example.com (Joe Smith)",
+                    "email@example",
+                    "email@111.222.333.44444",
+                    "email@example..com"
+                ].forEach((invalidEmail) => {
+                    test(`throws a validation error (422) if the email is invalid. Email: ${invalidEmail}`, () => {
+                        const invalidSubmission = {
+                            ...submission,
+                            [IUserColumnKeys.Email]: invalidEmail
+                        };
+
+                        return new UserService(dbConnection)
+                            .updateUser(1, invalidSubmission)
+                            .catch((error) => {
+                                expect(error.statusCode).toEqual(422);
+                                expect(error.message).toEqual("Validation Error");
+                                expect(error.details).toEqual(
+                                    expect.arrayContaining([
+                                        `${IUserColumnLabels.Email} is invalid`
+                                    ])
+                                );
+                            });
+                    });
+                });
+            }); // close describe("Email Address")
+
+            describe("Bio", () => {
+                test("throws a validation error (422) if its value is too long", () => {
+                    const invalidSubmission = {
+                        ...submission,
+                        [IUserColumnKeys.Bio]: new Array(155).join("z")
+                    };
+
+                    return new UserService(dbConnection)
+                        .updateUser(1, invalidSubmission)
+                        .catch((error) => {
+                            expect(error.statusCode).toEqual(422);
+                            expect(error.message).toEqual("Validation Error");
+                            expect(error.details).toEqual(
+                                expect.arrayContaining([
+                                    `${IUserColumnLabels.Bio} cannot be more than 150 characters`
+                                ])
+                            );
+                        });
+                });
+            }); // close describe("Bio")
+
+            describe("Profile Picture", () => {
+                test("throws a validation error (422) if its value is to long", () => {
+                    const invalidSubmission = {
+                        ...submission,
+                        [IUserColumnKeys.ProfilePicture]: new Array(260).join("z")
+                    };
+
+                    return new UserService(dbConnection)
+                        .updateUser(1, invalidSubmission)
+                        .catch((error) => {
+                            expect(error.statusCode).toEqual(422);
+                            expect(error.message).toEqual("Validation Error");
+                            expect(error.details).toEqual(
+                                expect.arrayContaining([
+                                    `${IUserColumnLabels.ProfilePicture} cannot be more than 255 characters`
+                                ])
+                            );
+                        });
+                });
+            }); // close describe("Profile Picture")
+        }); // close describe("Edit")
+    }); // close describe("Column Validation")
+
+    describe("getUser", () => {
+        let user;
+        let submission = buildValidSubmission("breakfastwithroxy");
+
+        beforeAll(async (done) => {
+            return userService.createUser(submission).then((userRecord) => {
+                user = userRecord;
+                done();
+            });
+        });
+
+        test("returns a user record", () => {
+            return userService.getUser(user.userNo).then((userRecord) => {
+                userRecordKeys.forEach((key) => {
+                    expect(userRecord).toHaveProperty(key);
+                });
+                expect(userRecord).toEqual(user);
+            });
+        });
+
+        test("does not return a user's password", () => {
+            return userService.getUser(user.userNo).then((userRecord) => {
+                expect(userRecord).not.toHaveProperty("password");
+            });
+        });
+
+        test("throws a not found error (404) if no user is found", () => {
+            const invalidUserNo = 867;
+
+            return userService.getUser(invalidUserNo).catch((error) => {
+                expect(error.statusCode).toEqual(404);
+                expect(error.message).toEqual("Not Found");
+                expect(error.details).toEqual(
+                    expect.arrayContaining([
+                        `User with a ${pk} of ${invalidUserNo} could not be found`
+                    ])
+                );
+            });
+        });
+
+        test("throws a bad request error (400) if userNo is undefined", async () => {
+            return userService.getUser(undefined).catch((error) => {
+                expect(error.statusCode).toEqual(400);
+                expect(error.message).toEqual("Bad Request");
+                expect(error.details).toEqual(
+                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
+                );
+            });
+        });
+
+        test("throws a bad request error (400) if userNo is null", async () => {
+            return userService.getUser(null).catch((error) => {
+                expect(error.statusCode).toEqual(400);
+                expect(error.message).toEqual("Bad Request");
+                expect(error.details).toEqual(
+                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
+                );
+            });
+        });
+
+        test("throws a bad request error (400) if userNo is a string", async () => {
+            return userService.getUser("123").catch((error) => {
+                expect(error.statusCode).toEqual(400);
+                expect(error.message).toEqual("Bad Request");
+                expect(error.details).toEqual(
+                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
+                );
+            });
+        });
+    }); // close describe("getUser")
+
+    describe("createUser", () => {
+        let newUser;
+        let submission = buildValidSubmission("spaghetti_strings");
+
+        test("successfully creates a user", () => {
+            return userService.createUser(submission).then((userRecord) => {
+                userRecordKeys.forEach((key) => {
+                    expect(userRecord).toHaveProperty(key);
+                });
+                [
+                    IUserColumnKeys.FirstName,
+                    IUserColumnKeys.LastName,
+                    IUserColumnKeys.Username,
+                    IUserColumnKeys.Email
+                ].forEach((key) => {
+                    expect(userRecord[key]).toEqual(submission[key]);
+                });
+
+                newUser = userRecord;
+            });
+        });
+
+        [
+            { key: "followerCount", label: "follower" },
+            { key: "followingCount", label: "following" },
+            { key: "postCount", label: "post" }
+        ].forEach(({ key, label }) => {
+            test(`successfully creates a user with the correct ${label} count`, () => {
+                expect(newUser[key]).toEqual(0);
+            });
+        });
+
+        test("throws a conflict error (409) if an email is passed that is already taken", () => {
+            return userService.getUser(1).then((userRecord) => {
+                const invalidSubmission = {
+                    ...submission,
+                    [IUserColumnKeys.Email]: userRecord.email,
+                    [IUserColumnKeys.Username]: "rage_against_the_machine"
+                };
+
+                return userService.createUser(invalidSubmission).catch((error) => {
+                    expect(error.statusCode).toEqual(409);
+                    expect(error.message).toEqual("Conflict Error");
+                    expect(error.details).toEqual(
+                        expect.arrayContaining([`${IUserColumnLabels.Email} is already in use`])
+                    );
+                });
+            });
+        });
+
+        test("throws a conflict error (409) if a username is passed that is already taken", () => {
+            return userService.getUser(1).then((userRecord) => {
+                const submission = buildValidSubmission(userRecord.username);
+
+                return userService.createUser(submission).catch((error) => {
+                    expect(error.statusCode).toEqual(409);
+                    expect(error.message).toEqual("Conflict Error");
+                    expect(error.details).toEqual(
+                        expect.arrayContaining([`${IUserColumnLabels.Username} is already in use`])
+                    );
+                });
+            });
+        });
     }); //close describe("createUser")
 
     describe("updateUser", () => {
@@ -726,6 +887,36 @@ describe("User Service", () => {
             });
         });
 
+        test("throws a bad request error (400) if userNo is undefined", () => {
+            return userService.updateUser(undefined, {}).catch((error) => {
+                expect(error.statusCode).toEqual(400);
+                expect(error.message).toEqual("Bad Request");
+                expect(error.details).toEqual(
+                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
+                );
+            });
+        });
+
+        test("throws a bad request error (400) if userNo is null", () => {
+            return userService.updateUser(null, {}).catch((error) => {
+                expect(error.statusCode).toEqual(400);
+                expect(error.message).toEqual("Bad Request");
+                expect(error.details).toEqual(
+                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
+                );
+            });
+        });
+
+        test("throws a bad request error (400) if userNo is a string", () => {
+            return userService.updateUser("thebiglebowski", {}).catch((error) => {
+                expect(error.statusCode).toEqual(400);
+                expect(error.message).toEqual("Bad Request");
+                expect(error.details).toEqual(
+                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
+                );
+            });
+        });
+
         test("throws a not found error (404) if no user is found", () => {
             const validSubmission: IUpdateUserValues = {
                 ...submissionOne,
@@ -758,7 +949,7 @@ describe("User Service", () => {
 
         test("successfully deletes a user", () => {
             return userService.deleteUser(newUser.userNo).then((response) => {
-                return userService.getUserByUserNo(newUser.userNo).then((userRecord) => {
+                return userService.getUser(newUser.userNo).then((userRecord) => {
                     expect(response).toEqual(true);
                     expect(userRecord.userNo).toEqual(newUser.userNo);
                     expect(userRecord.isDeleted).toEqual(1);

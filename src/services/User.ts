@@ -194,7 +194,9 @@ class UserService {
             label: IUserColumnLabels.ProfilePicture,
             check: (value) => {
                 if (value.length > 255)
-                    return new Error(`${IUserColumnLabels.ProfilePicture} is invalid`);
+                    return new Error(
+                        `${IUserColumnLabels.ProfilePicture} cannot be more than 255 characters`
+                    );
 
                 return undefined;
             }
@@ -230,7 +232,7 @@ class UserService {
         return this.dbConnection(this.table)
             .insert(newUser)
             .then((record) => {
-                return this.getUserByUserNo(record[0]);
+                return this.getUser(record[0]);
             })
             .catch((error) => {
                 if (new RegExp("(UNIQUE constraint|Duplicate entry)", "i").test(error.message)) {
@@ -273,6 +275,14 @@ class UserService {
      * @param submission User information used to update a user record
      */
     updateUser(userNo: number, submission: IUpdateUserValues): Promise<IUser> {
+        if (!userNo || typeof userNo !== "number") {
+            return Promise.reject({
+                statusCode: 400,
+                message: "Bad Request",
+                details: ["Parameter Error: userNo must be a number"]
+            });
+        }
+
         let cleanSubmission: IUpdateUserValues = {};
         const updateUserValidation: IFormValidation = this.tableColumns.filter(
             (column) => column.canEdit
@@ -293,7 +303,7 @@ class UserService {
             .update(cleanSubmission)
             .where(this.pk, userNo)
             .then(() => {
-                return this.getUserByUserNo(userNo);
+                return this.getUser(userNo);
             })
             .catch((error) => {
                 if (new RegExp("(UNIQUE constraint|Duplicate entry)", "i").test(error.message)) {
@@ -343,7 +353,7 @@ class UserService {
             });
         }
 
-        return this.getUserByUserNo(userNo).then((userRecord: IUser) => {
+        return this.getUser(userNo).then((userRecord: IUser) => {
             return this.dbConnection(this.table)
                 .update({ isDeleted: true })
                 .where(this.pk, userRecord.userNo)
@@ -355,7 +365,7 @@ class UserService {
      * Fetches a user record by using `userNo` as a lookup parameter
      * @param userNo The user number used to look for the correct user
      */
-    getUserByUserNo(userNo: number): Promise<IUser> {
+    getUser(userNo: number): Promise<IUser> {
         if (!userNo || typeof userNo !== "number") {
             return Promise.reject({
                 statusCode: 400,
