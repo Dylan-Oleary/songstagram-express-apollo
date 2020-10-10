@@ -1,3 +1,5 @@
+//@ts-nocheck
+
 import bcrypt from "bcrypt";
 import knex from "knex";
 
@@ -35,6 +37,15 @@ export interface ICreateUserValues {
     confirmPassword: string;
 }
 
+export interface IUpdateUserValues {
+    firstName?: string;
+    lastName?: string;
+    username?: string;
+    email?: string;
+    bio?: string;
+    profilePicture?: string;
+}
+
 export interface IUpdatePasswordValues {
     currentPassword: string;
     newPassword: string;
@@ -66,72 +77,83 @@ export enum IUserFormLabels {
 export const emailAddressRegExpValue = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 export const usernameRegExpValue = /^([A-Za-z0-9_](?:(?:[A-Za-z0-9_]|(?:.(?!.))){0,28}(?:[A-Za-z0-9_]))?)$/;
 
-export const baseUserValidation = {
-    [IUserFormKeys.FirstName]: {
-        isRequired: true,
-        label: IUserFormLabels.FirstName,
-        check: (value: string) => {
-            if (value.length > 255)
-                return new Error(`${IUserFormLabels.FirstName} cannot be more than 255 characters`);
+/**
+ * Builds a user validation object used to validate submissions for creating and updating a user
+ * @param required Set the base user fields to be required
+ */
+export const baseUserValidation: (required: boolean) => IFormValidationObject = (required = true) =>
+    ({
+        [IUserFormKeys.FirstName]: {
+            isRequired: required,
+            label: IUserFormLabels.FirstName,
+            check: (value: string) => {
+                if (value.length > 255)
+                    return new Error(
+                        `${IUserFormLabels.FirstName} cannot be more than 255 characters`
+                    );
 
-            return undefined;
-        }
-    },
-    [IUserFormKeys.LastName]: {
-        isRequired: true,
-        label: IUserFormLabels.LastName,
-        check: (value: string) => {
-            if (value.length > 255)
-                return new Error(`${IUserFormLabels.LastName} cannot be more than 255 characters`);
+                return undefined;
+            }
+        },
+        [IUserFormKeys.LastName]: {
+            isRequired: required,
+            label: IUserFormLabels.LastName,
+            check: (value: string) => {
+                if (value.length > 255)
+                    return new Error(
+                        `${IUserFormLabels.LastName} cannot be more than 255 characters`
+                    );
 
-            return undefined;
-        }
-    },
-    [IUserFormKeys.Bio]: {
-        isRequired: false,
-        label: IUserFormLabels.Bio,
-        check: (value: string) => {
-            if (value.length > 150)
-                return new Error(`${IUserFormLabels.Bio} cannot be more than 150 characters`);
+                return undefined;
+            }
+        },
+        [IUserFormKeys.Bio]: {
+            isRequired: false,
+            label: IUserFormLabels.Bio,
+            check: (value: string) => {
+                if (value.length > 150)
+                    return new Error(`${IUserFormLabels.Bio} cannot be more than 150 characters`);
 
-            return undefined;
-        }
-    },
-    [IUserFormKeys.Username]: {
-        isRequired: true,
-        label: IUserFormLabels.Username,
-        check: (value: string) => {
-            if (value.length > 30)
-                return new Error(`${IUserFormLabels.Username} cannot be more than 30 characters`);
-            if (!new RegExp(usernameRegExpValue).test(value))
-                return new Error(`${IUserFormLabels.Username} is invalid`);
+                return undefined;
+            }
+        },
+        [IUserFormKeys.Username]: {
+            isRequired: required,
+            label: IUserFormLabels.Username,
+            check: (value: string) => {
+                if (value.length > 30)
+                    return new Error(
+                        `${IUserFormLabels.Username} cannot be more than 30 characters`
+                    );
+                if (!new RegExp(usernameRegExpValue).test(value))
+                    return new Error(`${IUserFormLabels.Username} is invalid`);
 
-            return undefined;
-        }
-    },
-    [IUserFormKeys.Email]: {
-        isRequired: true,
-        label: IUserFormLabels.Email,
-        check: (value: string) => {
-            if (value.length > 255)
-                return new Error(`${IUserFormLabels.Email} cannot be more than 255 characters`);
-            if (!new RegExp(emailAddressRegExpValue, "i").test(value))
-                return new Error(`${IUserFormLabels.Email} is invalid`);
+                return undefined;
+            }
+        },
+        [IUserFormKeys.Email]: {
+            isRequired: required,
+            label: IUserFormLabels.Email,
+            check: (value: string) => {
+                if (value.length > 255)
+                    return new Error(`${IUserFormLabels.Email} cannot be more than 255 characters`);
+                if (!new RegExp(emailAddressRegExpValue, "i").test(value))
+                    return new Error(`${IUserFormLabels.Email} is invalid`);
 
-            return undefined;
-        }
-    },
-    [IUserFormKeys.ProfilePicture]: {
-        isRequired: false,
-        label: IUserFormLabels.ProfilePicture,
-        check: (value: string) => {
-            if (value.length > 255)
-                return new Error(`${IUserFormLabels.ProfilePicture} is invalid`);
+                return undefined;
+            }
+        },
+        [IUserFormKeys.ProfilePicture]: {
+            isRequired: false,
+            label: IUserFormLabels.ProfilePicture,
+            check: (value: string) => {
+                if (value.length > 255)
+                    return new Error(`${IUserFormLabels.ProfilePicture} is invalid`);
 
-            return undefined;
+                return undefined;
+            }
         }
-    }
-} as IFormValidationObject;
+    } as IFormValidationObject);
 
 const passwordValidation = {
     [IUserFormKeys.Password]: {
@@ -175,10 +197,10 @@ class UserService {
      * @param userSubmission User information used to create a new user
      */
     async createUser(userSubmission: ICreateUserValues): Promise<IUser> {
-        const createUserValidation = {
-            ...baseUserValidation,
+        const createUserValidation: IFormValidationObject = {
+            ...baseUserValidation(true),
             ...passwordValidation
-        } as IFormValidationObject;
+        };
 
         const submissionErrors = validateSubmission(createUserValidation, userSubmission);
 
@@ -226,9 +248,68 @@ class UserService {
                 }
 
                 return Promise.reject({
-                    statusCode: 500,
-                    message: "Internal Server Error",
-                    details: []
+                    statusCode: error.statusCode || 500,
+                    message: error.message || "Internal Server Error",
+                    details: error.details || []
+                });
+            });
+    }
+
+    /**
+     * Updates a user record
+     * @param userNo The user number used to look for the correct user
+     * @param submission User information used to update a user record
+     */
+    updateUser(userNo: number, submission: IUpdateUserValues): Promise<IUser> {
+        const updateUserValidation: IFormValidationObject = baseUserValidation(false);
+        const submissionErrors = validateSubmission(updateUserValidation, submission);
+        let cleanSubmission: IUpdateUserValues = {};
+
+        if (submissionErrors) return Promise.reject(submissionErrors);
+
+        Object.keys(submission).forEach((key) => {
+            if (submission[key]) {
+                cleanSubmission[key] = submission[key].trim();
+            }
+        });
+
+        return this.dbConnection(this.table)
+            .update(cleanSubmission)
+            .where(this.pk, userNo)
+            .then(() => {
+                return this.getUserByUserNo(userNo);
+            })
+            .catch((error) => {
+                if (new RegExp("(UNIQUE constraint|Duplicate entry)", "i").test(error.message)) {
+                    if (
+                        new RegExp(`(UNIQUE constraint failed: ${this.table}.email)`, "i").test(
+                            error.message
+                        )
+                    ) {
+                        return Promise.reject({
+                            statusCode: 409,
+                            message: "Conflict Error",
+                            details: [`${IUserFormLabels.Email} is already in use`]
+                        });
+                    }
+
+                    if (
+                        new RegExp(`(UNIQUE constraint failed: ${this.table}.username)`, "i").test(
+                            error.message
+                        )
+                    ) {
+                        return Promise.reject({
+                            statusCode: 409,
+                            message: "Conflict Error",
+                            details: [`${IUserFormLabels.Username} is already in use`]
+                        });
+                    }
+                }
+
+                return Promise.reject({
+                    statusCode: error.statusCode || 500,
+                    message: error.message || "Internal Server Error",
+                    details: error.details || []
                 });
             });
     }
@@ -237,7 +318,7 @@ class UserService {
      * Performs a soft delete on a user record
      * @param userNo The user number used to look for the correct user
      */
-    deleteUser(userNo: number): Promise<Boolean> {
+    deleteUser(userNo: number): Promise<boolean> {
         if (!userNo || typeof userNo !== "number") {
             return Promise.reject({
                 statusCode: 400,
@@ -318,8 +399,6 @@ class UserService {
                         message: "Not Found",
                         details: [`User with a ${this.pk} of ${userNo} could not be found`]
                     };
-
-                console.log(userRecord);
 
                 return this.comparePasswords(currentPassword, userRecord.password!).then(
                     async () => {

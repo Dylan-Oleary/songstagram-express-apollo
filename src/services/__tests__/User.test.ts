@@ -2,7 +2,14 @@
 import bcrypt from "bcrypt";
 import faker from "faker";
 import { dbConnection } from "../../knex/db";
-import { ICreateUserValues, IUser, IUserFormKeys, IUserFormLabels, UserService } from "../User";
+import {
+    ICreateUserValues,
+    IUpdateUserValues,
+    IUser,
+    IUserFormKeys,
+    IUserFormLabels,
+    UserService
+} from "../User";
 
 describe("User Service", () => {
     const pk = "userNo";
@@ -645,6 +652,97 @@ describe("User Service", () => {
         }); // close describe("Submission Fields")
     }); //close describe("createUser")
 
+    describe("updateUser", () => {
+        let userOne: IUser;
+        let userTwo: IUser;
+        let submissionOne = buildValidSubmission("rox_and_layla");
+        let submissionTwo = buildValidSubmission("michael_myers");
+
+        beforeAll((done) => {
+            return Promise.all([
+                userService.createUser(submissionOne),
+                userService.createUser(submissionTwo)
+            ]).then(([newUserOne, newUserTwo]) => {
+                userOne = newUserOne;
+                userTwo = newUserTwo;
+
+                [submissionOne, submissionTwo].forEach((submission) => {
+                    delete submission[IUserFormKeys.Password];
+                    delete submission[IUserFormKeys.ConfirmPassword];
+                });
+
+                done();
+            });
+        });
+
+        test("successfully updates a user", () => {
+            const validSubmission: IUpdateUserValues = {
+                ...submissionOne,
+                [IUserFormKeys.FirstName]: "Eddie",
+                [IUserFormKeys.LastName]: "Van Halen",
+                [IUserFormKeys.Bio]: "I invented tapping",
+                [IUserFormKeys.ProfilePicture]: "www.vanhalen.com/super-shredder"
+            };
+
+            return userService.updateUser(userOne.userNo, validSubmission).then((userRecord) => {
+                expect(userRecord).toEqual(
+                    expect.objectContaining({
+                        userNo: userOne.userNo,
+                        ...validSubmission
+                    })
+                );
+            });
+        });
+
+        test("throws a conflict error (409) if an email is passed that is already taken", () => {
+            const invalidSubmission = {
+                ...submissionTwo,
+                [IUserFormKeys.Email]: userOne.email
+            };
+
+            return userService.updateUser(userTwo.userNo, invalidSubmission).catch((error) => {
+                expect(error.statusCode).toEqual(409);
+                expect(error.message).toEqual("Conflict Error");
+                expect(error.details).toEqual(
+                    expect.arrayContaining([`${IUserFormLabels.Email} is already in use`])
+                );
+            });
+        });
+
+        test("throws a conflict error (409) if a username is passed that is already taken", () => {
+            const invalidSubmission = {
+                ...submissionTwo,
+                [IUserFormKeys.Username]: userOne.username
+            };
+
+            return userService.updateUser(userTwo.userNo, invalidSubmission).catch((error) => {
+                expect(error.statusCode).toEqual(409);
+                expect(error.message).toEqual("Conflict Error");
+                expect(error.details).toEqual(
+                    expect.arrayContaining([`${IUserFormLabels.Username} is already in use`])
+                );
+            });
+        });
+
+        test("throws a not found error (404) if no user is found", () => {
+            const validSubmission: IUpdateUserValues = {
+                ...submissionOne,
+                [IUserFormKeys.FirstName]: "Eddie",
+                [IUserFormKeys.LastName]: "Van Halen",
+                [IUserFormKeys.Bio]: "I invented tapping",
+                [IUserFormKeys.ProfilePicture]: "www.vanhalen.com/super-shredder"
+            };
+
+            return userService.updateUser(900, validSubmission).catch((error) => {
+                expect(error.statusCode).toEqual(404);
+                expect(error.message).toEqual("Not Found");
+                expect(error.details).toEqual(
+                    expect.arrayContaining(["User with a userNo of 900 could not be found"])
+                );
+            });
+        });
+    }); // close describe("updateUser")
+
     describe("deleteUser", () => {
         let newUser;
         let submission = buildValidSubmission("gurth_mcgurth");
@@ -692,6 +790,16 @@ describe("User Service", () => {
                 expect(error.message).toEqual("Bad Request");
                 expect(error.details).toEqual(
                     expect.arrayContaining(["Parameter Error: userNo must be a number"])
+                );
+            });
+        });
+
+        test("throws a not found error (404) if no user is found", () => {
+            return userService.deleteUser(900).catch((error) => {
+                expect(error.statusCode).toEqual(404);
+                expect(error.message).toEqual("Not Found");
+                expect(error.details).toEqual(
+                    expect.arrayContaining(["User with a userNo of 900 could not be found"])
                 );
             });
         });
