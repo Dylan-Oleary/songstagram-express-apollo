@@ -680,7 +680,7 @@ describe("User Service", () => {
     }); // close describe("Column Validation")
 
     describe("getUser", () => {
-        let user;
+        let user: IUser;
         let submission = buildValidSubmission("breakfastwithroxy");
 
         beforeAll(async (done) => {
@@ -751,7 +751,7 @@ describe("User Service", () => {
     }); // close describe("getUser")
 
     describe("createUser", () => {
-        let newUser;
+        let newUser: IUser;
         let submission = buildValidSubmission("spaghetti_strings");
 
         test("successfully creates a user", () => {

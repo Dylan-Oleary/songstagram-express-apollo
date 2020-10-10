@@ -1,2 +1,2 @@
-export { SpotifyService } from "./Spotify";
-export { UserService } from "./User";
+export * from "./Spotify";
+export * from "./User";

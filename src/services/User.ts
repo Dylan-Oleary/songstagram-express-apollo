@@ -83,6 +83,7 @@ const BCRYPT_HASH_SALT_ROUNDS = 10;
 
 /**
  * Service used to manage users
+ *
  * @param dbConnection Knex connection used to read/write to the database
  */
 class UserService {
@@ -209,6 +210,7 @@ class UserService {
 
     /**
      * Creates a new user
+     *
      * @param userSubmission User information used to create a new user
      */
     async createUser(userSubmission: ICreateUserValues): Promise<IUser> {
@@ -271,18 +273,11 @@ class UserService {
 
     /**
      * Updates a user record
+     *
      * @param userNo The user number used to look for the correct user
      * @param submission User information used to update a user record
      */
     updateUser(userNo: number, submission: IUpdateUserValues): Promise<IUser> {
-        if (!userNo || typeof userNo !== "number") {
-            return Promise.reject({
-                statusCode: 400,
-                message: "Bad Request",
-                details: ["Parameter Error: userNo must be a number"]
-            });
-        }
-
         let cleanSubmission: IUpdateUserValues = {};
         const updateUserValidation: IFormValidation = this.tableColumns.filter(
             (column) => column.canEdit
@@ -299,113 +294,101 @@ class UserService {
             }
         });
 
-        return this.dbConnection(this.table)
-            .update(cleanSubmission)
-            .where(this.pk, userNo)
-            .then(() => {
-                return this.getUser(userNo);
-            })
-            .catch((error) => {
-                if (new RegExp("(UNIQUE constraint|Duplicate entry)", "i").test(error.message)) {
+        return this.validateUserNo(userNo).then(() => {
+            return this.dbConnection(this.table)
+                .update(cleanSubmission)
+                .where(this.pk, userNo)
+                .then(() => {
+                    return this.getUser(userNo);
+                })
+                .catch((error) => {
                     if (
-                        new RegExp(`(UNIQUE constraint failed: ${this.table}.email)`, "i").test(
-                            error.message
-                        )
+                        new RegExp("(UNIQUE constraint|Duplicate entry)", "i").test(error.message)
                     ) {
-                        return Promise.reject({
-                            statusCode: 409,
-                            message: "Conflict Error",
-                            details: [`${IUserColumnLabels.Email} is already in use`]
-                        });
+                        if (
+                            new RegExp(`(UNIQUE constraint failed: ${this.table}.email)`, "i").test(
+                                error.message
+                            )
+                        ) {
+                            return Promise.reject({
+                                statusCode: 409,
+                                message: "Conflict Error",
+                                details: [`${IUserColumnLabels.Email} is already in use`]
+                            });
+                        }
+
+                        if (
+                            new RegExp(
+                                `(UNIQUE constraint failed: ${this.table}.username)`,
+                                "i"
+                            ).test(error.message)
+                        ) {
+                            return Promise.reject({
+                                statusCode: 409,
+                                message: "Conflict Error",
+                                details: [`${IUserColumnLabels.Username} is already in use`]
+                            });
+                        }
                     }
 
-                    if (
-                        new RegExp(`(UNIQUE constraint failed: ${this.table}.username)`, "i").test(
-                            error.message
-                        )
-                    ) {
-                        return Promise.reject({
-                            statusCode: 409,
-                            message: "Conflict Error",
-                            details: [`${IUserColumnLabels.Username} is already in use`]
-                        });
-                    }
-                }
-
-                return Promise.reject({
-                    statusCode: error.statusCode || 500,
-                    message: error.message || "Internal Server Error",
-                    details: error.details || []
+                    return Promise.reject({
+                        statusCode: error.statusCode || 500,
+                        message: error.message || "Internal Server Error",
+                        details: error.details || []
+                    });
                 });
-            });
+        });
     }
 
     /**
      * Performs a soft delete on a user record
+     *
      * @param userNo The user number used to look for the correct user
      */
     deleteUser(userNo: number): Promise<boolean> {
-        if (!userNo || typeof userNo !== "number") {
-            return Promise.reject({
-                statusCode: 400,
-                message: "Bad Request",
-                details: ["Parameter Error: userNo must be a number"]
+        return this.validateUserNo(userNo).then(() => {
+            return this.getUser(userNo).then((userRecord: IUser) => {
+                return this.dbConnection(this.table)
+                    .update({ isDeleted: true })
+                    .where(this.pk, userRecord.userNo)
+                    .then(() => true);
             });
-        }
-
-        return this.getUser(userNo).then((userRecord: IUser) => {
-            return this.dbConnection(this.table)
-                .update({ isDeleted: true })
-                .where(this.pk, userRecord.userNo)
-                .then(() => true);
         });
     }
 
     /**
      * Fetches a user record by using `userNo` as a lookup parameter
+     *
      * @param userNo The user number used to look for the correct user
      */
     getUser(userNo: number): Promise<IUser> {
-        if (!userNo || typeof userNo !== "number") {
-            return Promise.reject({
-                statusCode: 400,
-                message: "Bad Request",
-                details: ["Parameter Error: userNo must be a number"]
-            });
-        }
+        return this.validateUserNo(userNo).then(() => {
+            return this.dbConnection(this.table)
+                .first("*")
+                .where(this.pk, userNo)
+                .then((record) => {
+                    if (!record)
+                        throw {
+                            statusCode: 404,
+                            message: "Not Found",
+                            details: [`User with a ${this.pk} of ${userNo} could not be found`]
+                        };
 
-        return this.dbConnection(this.table)
-            .first("*")
-            .where(this.pk, userNo)
-            .then((record) => {
-                if (!record)
-                    throw {
-                        statusCode: 404,
-                        message: "Not Found",
-                        details: [`User with a ${this.pk} of ${userNo} could not be found`]
-                    };
+                    delete record.password;
 
-                delete record.password;
-
-                return record;
-            });
+                    return record;
+                });
+        });
     }
 
     /**
      * Update a user's password
+     *
      * @param userNo The user number used to look for the correct user
      * @param submission An object containing the user's current and new password information
      */
     updatePassword(userNo: number, submission: IUpdatePasswordValues): Promise<IUser> {
         const { currentPassword, newPassword, confirmNewPassword } = submission;
-
-        if (!userNo || typeof userNo !== "number") {
-            return Promise.reject({
-                statusCode: 400,
-                message: "Bad Request",
-                details: ["Parameter Error: userNo must be a number"]
-            });
-        }
 
         if (newPassword !== confirmNewPassword) {
             return Promise.reject({
@@ -415,32 +398,35 @@ class UserService {
             });
         }
 
-        return this.dbConnection(this.table)
-            .first("*")
-            .where(this.pk, userNo)
-            .then((userRecord) => {
-                if (!userRecord)
-                    throw {
-                        statusCode: 404,
-                        message: "Not Found",
-                        details: [`User with a ${this.pk} of ${userNo} could not be found`]
-                    };
+        return this.validateUserNo(userNo).then(() => {
+            return this.dbConnection(this.table)
+                .first("*")
+                .where(this.pk, userNo)
+                .then((userRecord) => {
+                    if (!userRecord)
+                        throw {
+                            statusCode: 404,
+                            message: "Not Found",
+                            details: [`User with a ${this.pk} of ${userNo} could not be found`]
+                        };
 
-                return this.comparePasswords(currentPassword, userRecord.password!).then(
-                    async () => {
-                        const hashedPassword = await this.hashPassword(newPassword);
+                    return this.comparePasswords(currentPassword, userRecord.password!).then(
+                        async () => {
+                            const hashedPassword = await this.hashPassword(newPassword);
 
-                        return this.dbConnection(this.table)
-                            .first("*")
-                            .where(this.pk, userNo)
-                            .update({ password: hashedPassword });
-                    }
-                );
-            });
+                            return this.dbConnection(this.table)
+                                .first("*")
+                                .where(this.pk, userNo)
+                                .update({ password: hashedPassword });
+                        }
+                    );
+                });
+        });
     }
 
     /**
      * Hashes a plain text password
+     *
      * @param password Plain text password to hash
      */
     private hashPassword(password: string): Promise<string> {
@@ -449,6 +435,7 @@ class UserService {
 
     /**
      * Confirms a match between a plain text password and an encrypted password
+     *
      * @param password A password to compare against the encrypted password
      * @param encryptedPassword The user's encrypted password
      */
@@ -470,6 +457,25 @@ class UserService {
                           details: ["Password does not match hashed password"]
                       });
             });
+        });
+    }
+
+    /**
+     * Validates that a user number is valid
+     *
+     * @param userNo A user number to validate
+     */
+    private validateUserNo(userNo: number): Promise<Error | void> {
+        return new Promise((resolve, reject) => {
+            if (!userNo || typeof userNo !== "number") {
+                return reject({
+                    statusCode: 400,
+                    message: "Bad Request",
+                    details: ["Parameter Error: userNo must be a number"]
+                });
+            } else {
+                return resolve();
+            }
         });
     }
 }
