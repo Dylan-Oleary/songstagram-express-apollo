@@ -47,6 +47,7 @@ export interface IUpdatePasswordValues {
 }
 
 export enum IUserColumnKeys {
+    UserNo = "userNo",
     FirstName = "firstName",
     LastName = "lastName",
     Bio = "bio",
@@ -54,10 +55,19 @@ export enum IUserColumnKeys {
     Email = "email",
     Password = "password",
     ConfirmPassword = "confirmPassword",
-    ProfilePicture = "profilePicture"
+    ProfilePicture = "profilePicture",
+    PostCount = "postCount",
+    FollowerCount = "followerCount",
+    FollowingCount = "followingCount",
+    IsBanned = "isBanned",
+    IsDeleted = "isDeleted",
+    CreatedDate = "createdDate",
+    LastUpdated = "lastUpdated",
+    LastLoginDate = "lastLoginDate"
 }
 
 export enum IUserColumnLabels {
+    UserNo = "User Number",
     FirstName = "First Name",
     LastName = "Last Name",
     Bio = "Bio",
@@ -65,15 +75,24 @@ export enum IUserColumnLabels {
     Email = "Email",
     Password = "Password",
     ConfirmPassword = "Confirm Password",
-    ProfilePicture = "Profile Picture"
+    ProfilePicture = "Profile Picture",
+    PostCount = "Post Count",
+    FollowerCount = "Follower Count",
+    FollowingCount = "Following Count",
+    IsBanned = "Is Banned",
+    IsDeleted = "Is Deleted",
+    CreatedDate = "Created Date",
+    LastUpdated = "Last Updated",
+    LastLoginDate = "Last Login Date"
 }
 
 export interface IUserColumnDefinition {
     key: IUserColumnKeys;
+    isSelectable: boolean;
     isRequiredOnCreate: boolean;
     canEdit: boolean;
     label: IUserColumnLabels;
-    check: (value: string, submission?: IFormSubmission) => undefined | Error;
+    check?: (value: string, submission?: IFormSubmission) => undefined | Error;
 }
 
 export const emailAddressRegExpValue = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
@@ -92,7 +111,15 @@ class UserService {
     private readonly table = "users";
     private readonly tableColumns: IUserColumnDefinition[] = [
         {
+            key: IUserColumnKeys.UserNo,
+            isSelectable: true,
+            isRequiredOnCreate: false,
+            canEdit: false,
+            label: IUserColumnLabels.UserNo
+        },
+        {
             key: IUserColumnKeys.FirstName,
+            isSelectable: true,
             isRequiredOnCreate: true,
             canEdit: true,
             label: IUserColumnLabels.FirstName,
@@ -107,6 +134,7 @@ class UserService {
         },
         {
             key: IUserColumnKeys.LastName,
+            isSelectable: true,
             isRequiredOnCreate: true,
             canEdit: true,
             label: IUserColumnLabels.LastName,
@@ -121,6 +149,7 @@ class UserService {
         },
         {
             key: IUserColumnKeys.Username,
+            isSelectable: true,
             isRequiredOnCreate: true,
             canEdit: true,
             label: IUserColumnLabels.Username,
@@ -137,6 +166,7 @@ class UserService {
         },
         {
             key: IUserColumnKeys.Email,
+            isSelectable: true,
             isRequiredOnCreate: true,
             canEdit: true,
             label: IUserColumnLabels.Email,
@@ -153,6 +183,7 @@ class UserService {
         },
         {
             key: IUserColumnKeys.Password,
+            isSelectable: false,
             isRequiredOnCreate: true,
             canEdit: false,
             label: IUserColumnLabels.Password,
@@ -166,6 +197,7 @@ class UserService {
         },
         {
             key: IUserColumnKeys.ConfirmPassword,
+            isSelectable: false,
             isRequiredOnCreate: true,
             canEdit: false,
             label: IUserColumnLabels.ConfirmPassword,
@@ -178,6 +210,7 @@ class UserService {
         },
         {
             key: IUserColumnKeys.Bio,
+            isSelectable: true,
             isRequiredOnCreate: false,
             canEdit: true,
             label: IUserColumnLabels.Bio,
@@ -190,6 +223,7 @@ class UserService {
         },
         {
             key: IUserColumnKeys.ProfilePicture,
+            isSelectable: true,
             isRequiredOnCreate: false,
             canEdit: true,
             label: IUserColumnLabels.ProfilePicture,
@@ -201,6 +235,62 @@ class UserService {
 
                 return undefined;
             }
+        },
+        {
+            key: IUserColumnKeys.PostCount,
+            isSelectable: true,
+            isRequiredOnCreate: false,
+            canEdit: false,
+            label: IUserColumnLabels.PostCount
+        },
+        {
+            key: IUserColumnKeys.FollowerCount,
+            isSelectable: true,
+            isRequiredOnCreate: false,
+            canEdit: false,
+            label: IUserColumnLabels.FollowerCount
+        },
+        {
+            key: IUserColumnKeys.FollowingCount,
+            isSelectable: true,
+            isRequiredOnCreate: false,
+            canEdit: false,
+            label: IUserColumnLabels.FollowingCount
+        },
+        {
+            key: IUserColumnKeys.IsDeleted,
+            isSelectable: true,
+            isRequiredOnCreate: false,
+            canEdit: false,
+            label: IUserColumnLabels.IsDeleted
+        },
+        {
+            key: IUserColumnKeys.IsBanned,
+            isSelectable: true,
+            isRequiredOnCreate: false,
+            canEdit: false,
+            label: IUserColumnLabels.IsBanned
+        },
+        {
+            key: IUserColumnKeys.CreatedDate,
+            isSelectable: true,
+            isRequiredOnCreate: false,
+            canEdit: false,
+            label: IUserColumnLabels.CreatedDate
+        },
+        {
+            key: IUserColumnKeys.LastUpdated,
+            isSelectable: true,
+            isRequiredOnCreate: false,
+            canEdit: false,
+            label: IUserColumnLabels.LastUpdated
+        },
+        {
+            key: IUserColumnKeys.LastLoginDate,
+            isSelectable: true,
+            isRequiredOnCreate: false,
+            canEdit: false,
+            label: IUserColumnLabels.LastLoginDate
         }
     ];
 
@@ -379,6 +469,26 @@ class UserService {
                     return record;
                 });
         });
+    }
+
+    getUserList(
+        options = {
+            where: {},
+            itemsPerPage: 10,
+            pageNo: 1,
+            orderBy: this.pk
+        }
+    ): Promise<IUser[]> {
+        const selectableColumns = this.tableColumns
+            .filter((column) => column.isSelectable)
+            .map((column) => column.key);
+
+        return this.dbConnection(this.table)
+            .select(selectableColumns)
+            .where(options.where)
+            .offset((options.pageNo - 1) * options.itemsPerPage)
+            .limit(options.itemsPerPage)
+            .orderBy(options.orderBy);
     }
 
     /**

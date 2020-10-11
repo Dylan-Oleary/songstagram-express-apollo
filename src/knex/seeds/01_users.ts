@@ -1,30 +1,39 @@
 import * as Knex from "knex";
+import faker from "faker";
+
+import { IUserColumnKeys } from "../../services";
+
+interface IUserKnexSeed {
+    firstName: string;
+    lastName: string;
+    username: string;
+    email: string;
+    password: string;
+}
+
+const buildRecord: (username: string) => IUserKnexSeed = (username) => {
+    const submission: IUserKnexSeed = {
+        [IUserColumnKeys.FirstName]: faker.name.firstName(),
+        [IUserColumnKeys.LastName]: faker.name.lastName(),
+        [IUserColumnKeys.Username]: username,
+        [IUserColumnKeys.Email]: faker.internet.email(),
+        [IUserColumnKeys.Password]: "M0N3y!"
+    };
+
+    return submission;
+};
 
 const usersSeed = [
-    {
-        firstName: "Roxy",
-        lastName: "Wild",
-        bio: "Black lab with the best pawrents",
-        username: "breakfastwithroxy",
-        email: "roxanne@gmail.com",
-        password: "woof"
-    },
-    {
-        firstName: "Layla",
-        lastName: "Wild",
-        bio: "Dalmatian with too much energy",
-        username: "spotted_monster",
-        email: "layla@gmail.com",
-        password: "bark"
-    },
-    {
-        firstName: "Boone",
-        lastName: "Wild",
-        bio: "JRC Pup",
-        username: "the_kev",
-        email: "boone@gmail.com",
-        password: "nels0n"
-    }
+    buildRecord("tommy_gunns"),
+    buildRecord("themi11kman"),
+    buildRecord("Havok"),
+    buildRecord("Frasair417"),
+    buildRecord("neonskies"),
+    buildRecord("reggie_ladoo"),
+    buildRecord("roxythedog"),
+    buildRecord("laylathepooch"),
+    buildRecord("boonebone"),
+    buildRecord("peachyH")
 ];
 
 exports.seed = (knex: Knex) => {

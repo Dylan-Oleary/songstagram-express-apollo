@@ -8,7 +8,7 @@ export interface IFormValidationField {
     isRequired?: boolean;
     key: string;
     label: string;
-    check: (value: string, submission?: IFormSubmission) => Error | undefined;
+    check?: (value: string, submission?: IFormSubmission) => Error | undefined;
 }
 
 export interface IFormValidationError {
@@ -32,7 +32,7 @@ export const validateSubmission: (
             if (isRequired && String(submission[key]).trim().length === 0)
                 submissionErrors.push(`${label} is a required field`);
 
-            const fieldError = check(submission[key], submission);
+            const fieldError = check ? check(submission[key], submission) : undefined;
 
             if (fieldError && fieldError.message) {
                 submissionErrors.push(fieldError.message);

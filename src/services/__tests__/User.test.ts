@@ -1,15 +1,10 @@
 //@ts-nocheck
 import bcrypt from "bcrypt";
 import faker from "faker";
+import path from "path";
+
 import { dbConnection } from "../../knex/db";
-import {
-    ICreateUserValues,
-    IUpdateUserValues,
-    IUser,
-    IUserColumnKeys,
-    IUserColumnLabels,
-    UserService
-} from "../User";
+import { IUpdateUserValues, IUser, IUserColumnKeys, IUserColumnLabels, UserService } from "../User";
 
 describe("User Service", () => {
     const pk = "userNo";
@@ -32,7 +27,17 @@ describe("User Service", () => {
         "lastUpdated"
     ];
     const userService = new UserService(dbConnection);
-    const buildValidSubmission: (username: string) => ICreateUserValues = (username) => {
+
+    /**
+     * Builds a valid user submission
+     *
+     * @param username A valid username
+     * @param deletePasswords Determines whether or not to omit `password` & `confirmPassword` from the submission. This becomes useful when building submissions for both creating a user and updating a user
+     */
+    const buildValidSubmission: (
+        username: string,
+        deletePasswords?: boolean
+    ) => ICreateUserValues | IUpdateUserValues = (username, deletePasswords = false) => {
         const submission: ICreateUserValues = {
             [IUserColumnKeys.FirstName]: faker.name.firstName(),
             [IUserColumnKeys.LastName]: faker.name.lastName(),
@@ -42,11 +47,21 @@ describe("User Service", () => {
             [IUserColumnKeys.ConfirmPassword]: "M0N3y!"
         };
 
+        if (deletePasswords) {
+            delete submission[IUserColumnKeys.Password];
+            delete submission[IUserColumnKeys.ConfirmPassword];
+        }
+
         return submission;
     };
 
     beforeAll(async (done) => {
         await dbConnection.migrate.latest();
+        await dbConnection.seed.run({
+            directory: path.join(__dirname, "../../knex/seeds"),
+            loadExtensions: [".ts"],
+            specific: "01_users.ts"
+        });
         done();
     });
 
@@ -67,42 +82,37 @@ describe("User Service", () => {
                     test("throws a validation error (422) if its value is undefined", () => {
                         const invalidSubmission = { ...submission, [key]: undefined };
 
-                        return new UserService(dbConnection)
-                            .createUser(invalidSubmission)
-                            .catch((error) => {
-                                expect(error.statusCode).toEqual(422);
-                                expect(error.message).toEqual("Validation Error");
-                                expect(error.details).toEqual(
-                                    expect.arrayContaining([`${label} is a required field`])
-                                );
-                            });
+                        return userService.createUser(invalidSubmission).catch((error) => {
+                            expect(error.statusCode).toEqual(422);
+                            expect(error.message).toEqual("Validation Error");
+                            expect(error.details).toEqual(
+                                expect.arrayContaining([`${label} is a required field`])
+                            );
+                        });
                     });
 
                     test("throws a validation error (422) if its value is null", () => {
                         const invalidSubmission = { ...submission, [key]: null };
-                        return new UserService(dbConnection)
-                            .createUser(invalidSubmission)
-                            .catch((error) => {
-                                expect(error.statusCode).toEqual(422);
-                                expect(error.message).toEqual("Validation Error");
-                                expect(error.details).toEqual(
-                                    expect.arrayContaining([`${label} is a required field`])
-                                );
-                            });
+
+                        return userService.createUser(invalidSubmission).catch((error) => {
+                            expect(error.statusCode).toEqual(422);
+                            expect(error.message).toEqual("Validation Error");
+                            expect(error.details).toEqual(
+                                expect.arrayContaining([`${label} is a required field`])
+                            );
+                        });
                     });
 
                     test("throws a validation error (422) if its value is empty", () => {
                         const invalidSubmission = { ...submission, [key]: "" };
 
-                        return new UserService(dbConnection)
-                            .createUser(invalidSubmission)
-                            .catch((error) => {
-                                expect(error.statusCode).toEqual(422);
-                                expect(error.message).toEqual("Validation Error");
-                                expect(error.details).toEqual(
-                                    expect.arrayContaining([`${label} is a required field`])
-                                );
-                            });
+                        return userService.createUser(invalidSubmission).catch((error) => {
+                            expect(error.statusCode).toEqual(422);
+                            expect(error.message).toEqual("Validation Error");
+                            expect(error.details).toEqual(
+                                expect.arrayContaining([`${label} is a required field`])
+                            );
+                        });
                     });
 
                     test("throws a validation error (422) if its value is too long", () => {
@@ -111,17 +121,15 @@ describe("User Service", () => {
                             [key]: new Array(257).join("x")
                         };
 
-                        return new UserService(dbConnection)
-                            .createUser(invalidSubmission)
-                            .catch((error) => {
-                                expect(error.statusCode).toEqual(422);
-                                expect(error.message).toEqual("Validation Error");
-                                expect(error.details).toEqual(
-                                    expect.arrayContaining([
-                                        `${label} cannot be more than 255 characters`
-                                    ])
-                                );
-                            });
+                        return userService.createUser(invalidSubmission).catch((error) => {
+                            expect(error.statusCode).toEqual(422);
+                            expect(error.message).toEqual("Validation Error");
+                            expect(error.details).toEqual(
+                                expect.arrayContaining([
+                                    `${label} cannot be more than 255 characters`
+                                ])
+                            );
+                        });
                     });
                 }); // close describe("First Name / Last Name")
             }); // close forEach
@@ -133,17 +141,15 @@ describe("User Service", () => {
                         [IUserColumnKeys.Username]: undefined
                     };
 
-                    return new UserService(dbConnection)
-                        .createUser(invalidSubmission)
-                        .catch((error) => {
-                            expect(error.statusCode).toEqual(422);
-                            expect(error.message).toEqual("Validation Error");
-                            expect(error.details).toEqual(
-                                expect.arrayContaining([
-                                    `${IUserColumnLabels.Username} is a required field`
-                                ])
-                            );
-                        });
+                    return userService.createUser(invalidSubmission).catch((error) => {
+                        expect(error.statusCode).toEqual(422);
+                        expect(error.message).toEqual("Validation Error");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `${IUserColumnLabels.Username} is a required field`
+                            ])
+                        );
+                    });
                 });
 
                 test("throws a validation error (422) if its value is null", () => {
@@ -152,17 +158,15 @@ describe("User Service", () => {
                         [IUserColumnKeys.Username]: null
                     };
 
-                    return new UserService(dbConnection)
-                        .createUser(invalidSubmission)
-                        .catch((error) => {
-                            expect(error.statusCode).toEqual(422);
-                            expect(error.message).toEqual("Validation Error");
-                            expect(error.details).toEqual(
-                                expect.arrayContaining([
-                                    `${IUserColumnLabels.Username} is a required field`
-                                ])
-                            );
-                        });
+                    return userService.createUser(invalidSubmission).catch((error) => {
+                        expect(error.statusCode).toEqual(422);
+                        expect(error.message).toEqual("Validation Error");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `${IUserColumnLabels.Username} is a required field`
+                            ])
+                        );
+                    });
                 });
 
                 test("throws a validation error (422) if its value is empty", () => {
@@ -171,17 +175,15 @@ describe("User Service", () => {
                         [IUserColumnKeys.Username]: ""
                     };
 
-                    return new UserService(dbConnection)
-                        .createUser(invalidSubmission)
-                        .catch((error) => {
-                            expect(error.statusCode).toEqual(422);
-                            expect(error.message).toEqual("Validation Error");
-                            expect(error.details).toEqual(
-                                expect.arrayContaining([
-                                    `${IUserColumnLabels.Username} is a required field`
-                                ])
-                            );
-                        });
+                    return userService.createUser(invalidSubmission).catch((error) => {
+                        expect(error.statusCode).toEqual(422);
+                        expect(error.message).toEqual("Validation Error");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `${IUserColumnLabels.Username} is a required field`
+                            ])
+                        );
+                    });
                 });
 
                 test("throws a validation error (422) if its value is too long", () => {
@@ -190,17 +192,15 @@ describe("User Service", () => {
                         [IUserColumnKeys.Username]: new Array(32).join("x")
                     };
 
-                    return new UserService(dbConnection)
-                        .createUser(invalidSubmission)
-                        .catch((error) => {
-                            expect(error.statusCode).toEqual(422);
-                            expect(error.message).toEqual("Validation Error");
-                            expect(error.details).toEqual(
-                                expect.arrayContaining([
-                                    `${IUserColumnLabels.Username} cannot be more than 30 characters`
-                                ])
-                            );
-                        });
+                    return userService.createUser(invalidSubmission).catch((error) => {
+                        expect(error.statusCode).toEqual(422);
+                        expect(error.message).toEqual("Validation Error");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `${IUserColumnLabels.Username} cannot be more than 30 characters`
+                            ])
+                        );
+                    });
                 });
 
                 [
@@ -217,17 +217,13 @@ describe("User Service", () => {
                             [IUserColumnKeys.Username]: username
                         };
 
-                        return new UserService(dbConnection)
-                            .createUser(invalidSubmission)
-                            .catch((error) => {
-                                expect(error.statusCode).toEqual(422);
-                                expect(error.message).toEqual("Validation Error");
-                                expect(error.details).toEqual(
-                                    expect.arrayContaining([
-                                        `${IUserColumnLabels.Username} is invalid`
-                                    ])
-                                );
-                            });
+                        return userService.createUser(invalidSubmission).catch((error) => {
+                            expect(error.statusCode).toEqual(422);
+                            expect(error.message).toEqual("Validation Error");
+                            expect(error.details).toEqual(
+                                expect.arrayContaining([`${IUserColumnLabels.Username} is invalid`])
+                            );
+                        });
                     });
                 }); // close forEach
             }); // close describe("Username")
@@ -239,17 +235,15 @@ describe("User Service", () => {
                         [IUserColumnKeys.Email]: undefined
                     };
 
-                    return new UserService(dbConnection)
-                        .createUser(invalidSubmission)
-                        .catch((error) => {
-                            expect(error.statusCode).toEqual(422);
-                            expect(error.message).toEqual("Validation Error");
-                            expect(error.details).toEqual(
-                                expect.arrayContaining([
-                                    `${IUserColumnLabels.Email} is a required field`
-                                ])
-                            );
-                        });
+                    return userService.createUser(invalidSubmission).catch((error) => {
+                        expect(error.statusCode).toEqual(422);
+                        expect(error.message).toEqual("Validation Error");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `${IUserColumnLabels.Email} is a required field`
+                            ])
+                        );
+                    });
                 });
 
                 test("throws a validation error (422) if its value is null", () => {
@@ -258,17 +252,15 @@ describe("User Service", () => {
                         [IUserColumnKeys.Email]: null
                     };
 
-                    return new UserService(dbConnection)
-                        .createUser(invalidSubmission)
-                        .catch((error) => {
-                            expect(error.statusCode).toEqual(422);
-                            expect(error.message).toEqual("Validation Error");
-                            expect(error.details).toEqual(
-                                expect.arrayContaining([
-                                    `${IUserColumnLabels.Email} is a required field`
-                                ])
-                            );
-                        });
+                    return userService.createUser(invalidSubmission).catch((error) => {
+                        expect(error.statusCode).toEqual(422);
+                        expect(error.message).toEqual("Validation Error");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `${IUserColumnLabels.Email} is a required field`
+                            ])
+                        );
+                    });
                 });
 
                 test("throws a validation error (422) if its value is empty", () => {
@@ -277,17 +269,15 @@ describe("User Service", () => {
                         [IUserColumnKeys.Email]: ""
                     };
 
-                    return new UserService(dbConnection)
-                        .createUser(invalidSubmission)
-                        .catch((error) => {
-                            expect(error.statusCode).toEqual(422);
-                            expect(error.message).toEqual("Validation Error");
-                            expect(error.details).toEqual(
-                                expect.arrayContaining([
-                                    `${IUserColumnLabels.Email} is a required field`
-                                ])
-                            );
-                        });
+                    return userService.createUser(invalidSubmission).catch((error) => {
+                        expect(error.statusCode).toEqual(422);
+                        expect(error.message).toEqual("Validation Error");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `${IUserColumnLabels.Email} is a required field`
+                            ])
+                        );
+                    });
                 });
 
                 test("throws a validation error (422) if its value is too long", () => {
@@ -296,17 +286,15 @@ describe("User Service", () => {
                         [IUserColumnKeys.Email]: new Array(257).join("x")
                     };
 
-                    return new UserService(dbConnection)
-                        .createUser(invalidSubmission)
-                        .catch((error) => {
-                            expect(error.statusCode).toEqual(422);
-                            expect(error.message).toEqual("Validation Error");
-                            expect(error.details).toEqual(
-                                expect.arrayContaining([
-                                    `${IUserColumnLabels.Email} cannot be more than 255 characters`
-                                ])
-                            );
-                        });
+                    return userService.createUser(invalidSubmission).catch((error) => {
+                        expect(error.statusCode).toEqual(422);
+                        expect(error.message).toEqual("Validation Error");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `${IUserColumnLabels.Email} cannot be more than 255 characters`
+                            ])
+                        );
+                    });
                 });
 
                 [
@@ -330,17 +318,13 @@ describe("User Service", () => {
                             [IUserColumnKeys.Email]: invalidEmail
                         };
 
-                        return new UserService(dbConnection)
-                            .createUser(invalidSubmission)
-                            .catch((error) => {
-                                expect(error.statusCode).toEqual(422);
-                                expect(error.message).toEqual("Validation Error");
-                                expect(error.details).toEqual(
-                                    expect.arrayContaining([
-                                        `${IUserColumnLabels.Email} is invalid`
-                                    ])
-                                );
-                            });
+                        return userService.createUser(invalidSubmission).catch((error) => {
+                            expect(error.statusCode).toEqual(422);
+                            expect(error.message).toEqual("Validation Error");
+                            expect(error.details).toEqual(
+                                expect.arrayContaining([`${IUserColumnLabels.Email} is invalid`])
+                            );
+                        });
                     });
                 });
             }); // close describe("Email Address")
@@ -352,17 +336,15 @@ describe("User Service", () => {
                         [IUserColumnKeys.Password]: undefined
                     };
 
-                    return new UserService(dbConnection)
-                        .createUser(invalidSubmission)
-                        .catch((error) => {
-                            expect(error.statusCode).toEqual(422);
-                            expect(error.message).toEqual("Validation Error");
-                            expect(error.details).toEqual(
-                                expect.arrayContaining([
-                                    `${IUserColumnLabels.Password} is a required field`
-                                ])
-                            );
-                        });
+                    return userService.createUser(invalidSubmission).catch((error) => {
+                        expect(error.statusCode).toEqual(422);
+                        expect(error.message).toEqual("Validation Error");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `${IUserColumnLabels.Password} is a required field`
+                            ])
+                        );
+                    });
                 });
 
                 test("throws a validation error (422) when its value is null", () => {
@@ -371,17 +353,15 @@ describe("User Service", () => {
                         [IUserColumnKeys.Password]: null
                     };
 
-                    return new UserService(dbConnection)
-                        .createUser(invalidSubmission)
-                        .catch((error) => {
-                            expect(error.statusCode).toEqual(422);
-                            expect(error.message).toEqual("Validation Error");
-                            expect(error.details).toEqual(
-                                expect.arrayContaining([
-                                    `${IUserColumnLabels.Password} is a required field`
-                                ])
-                            );
-                        });
+                    return userService.createUser(invalidSubmission).catch((error) => {
+                        expect(error.statusCode).toEqual(422);
+                        expect(error.message).toEqual("Validation Error");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `${IUserColumnLabels.Password} is a required field`
+                            ])
+                        );
+                    });
                 });
 
                 test("throws a validation error (422) when its value is empty", () => {
@@ -390,17 +370,15 @@ describe("User Service", () => {
                         [IUserColumnKeys.Password]: ""
                     };
 
-                    return new UserService(dbConnection)
-                        .createUser(invalidSubmission)
-                        .catch((error) => {
-                            expect(error.statusCode).toEqual(422);
-                            expect(error.message).toEqual("Validation Error");
-                            expect(error.details).toEqual(
-                                expect.arrayContaining([
-                                    `${IUserColumnLabels.Password} is a required field`
-                                ])
-                            );
-                        });
+                    return userService.createUser(invalidSubmission).catch((error) => {
+                        expect(error.statusCode).toEqual(422);
+                        expect(error.message).toEqual("Validation Error");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `${IUserColumnLabels.Password} is a required field`
+                            ])
+                        );
+                    });
                 });
 
                 test("throws a validation error (422) when its value is too long", () => {
@@ -409,17 +387,15 @@ describe("User Service", () => {
                         [IUserColumnKeys.Password]: new Array(52).join("x")
                     };
 
-                    return new UserService(dbConnection)
-                        .createUser(invalidSubmission)
-                        .catch((error) => {
-                            expect(error.statusCode).toEqual(422);
-                            expect(error.message).toEqual("Validation Error");
-                            expect(error.details).toEqual(
-                                expect.arrayContaining([
-                                    `${IUserColumnLabels.Password} cannot be more than 50 characters`
-                                ])
-                            );
-                        });
+                    return userService.createUser(invalidSubmission).catch((error) => {
+                        expect(error.statusCode).toEqual(422);
+                        expect(error.message).toEqual("Validation Error");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `${IUserColumnLabels.Password} cannot be more than 50 characters`
+                            ])
+                        );
+                    });
                 });
             }); // close describe("Password")
 
@@ -430,17 +406,15 @@ describe("User Service", () => {
                         [IUserColumnKeys.ConfirmPassword]: undefined
                     };
 
-                    return new UserService(dbConnection)
-                        .createUser(invalidSubmission)
-                        .catch((error) => {
-                            expect(error.statusCode).toEqual(422);
-                            expect(error.message).toEqual("Validation Error");
-                            expect(error.details).toEqual(
-                                expect.arrayContaining([
-                                    `${IUserColumnLabels.ConfirmPassword} is a required field`
-                                ])
-                            );
-                        });
+                    return userService.createUser(invalidSubmission).catch((error) => {
+                        expect(error.statusCode).toEqual(422);
+                        expect(error.message).toEqual("Validation Error");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `${IUserColumnLabels.ConfirmPassword} is a required field`
+                            ])
+                        );
+                    });
                 });
 
                 test("throws a validation error (422) when its value is null", () => {
@@ -449,17 +423,15 @@ describe("User Service", () => {
                         [IUserColumnKeys.ConfirmPassword]: null
                     };
 
-                    return new UserService(dbConnection)
-                        .createUser(invalidSubmission)
-                        .catch((error) => {
-                            expect(error.statusCode).toEqual(422);
-                            expect(error.message).toEqual("Validation Error");
-                            expect(error.details).toEqual(
-                                expect.arrayContaining([
-                                    `${IUserColumnLabels.ConfirmPassword} is a required field`
-                                ])
-                            );
-                        });
+                    return userService.createUser(invalidSubmission).catch((error) => {
+                        expect(error.statusCode).toEqual(422);
+                        expect(error.message).toEqual("Validation Error");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `${IUserColumnLabels.ConfirmPassword} is a required field`
+                            ])
+                        );
+                    });
                 });
 
                 test("throws a validation error (422) when its value is empty", () => {
@@ -468,17 +440,15 @@ describe("User Service", () => {
                         [IUserColumnKeys.ConfirmPassword]: ""
                     };
 
-                    return new UserService(dbConnection)
-                        .createUser(invalidSubmission)
-                        .catch((error) => {
-                            expect(error.statusCode).toEqual(422);
-                            expect(error.message).toEqual("Validation Error");
-                            expect(error.details).toEqual(
-                                expect.arrayContaining([
-                                    `${IUserColumnLabels.ConfirmPassword} is a required field`
-                                ])
-                            );
-                        });
+                    return userService.createUser(invalidSubmission).catch((error) => {
+                        expect(error.statusCode).toEqual(422);
+                        expect(error.message).toEqual("Validation Error");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `${IUserColumnLabels.ConfirmPassword} is a required field`
+                            ])
+                        );
+                    });
                 });
 
                 test("throws a validation error (422) when its value does match the 'Password' value", () => {
@@ -488,15 +458,13 @@ describe("User Service", () => {
                         [IUserColumnKeys.ConfirmPassword]: "password"
                     };
 
-                    return new UserService(dbConnection)
-                        .createUser(invalidSubmission)
-                        .catch((error) => {
-                            expect(error.statusCode).toEqual(422);
-                            expect(error.message).toEqual("Validation Error");
-                            expect(error.details).toEqual(
-                                expect.arrayContaining(["Passwords must match"])
-                            );
-                        });
+                    return userService.createUser(invalidSubmission).catch((error) => {
+                        expect(error.statusCode).toEqual(422);
+                        expect(error.message).toEqual("Validation Error");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining(["Passwords must match"])
+                        );
+                    });
                 });
             }); // close describe("Confirm Password")
         }); // close describe("Create")
@@ -515,17 +483,15 @@ describe("User Service", () => {
                             [key]: new Array(257).join("x")
                         };
 
-                        return new UserService(dbConnection)
-                            .updateUser(1, invalidSubmission)
-                            .catch((error) => {
-                                expect(error.statusCode).toEqual(422);
-                                expect(error.message).toEqual("Validation Error");
-                                expect(error.details).toEqual(
-                                    expect.arrayContaining([
-                                        `${label} cannot be more than 255 characters`
-                                    ])
-                                );
-                            });
+                        return userService.updateUser(1, invalidSubmission).catch((error) => {
+                            expect(error.statusCode).toEqual(422);
+                            expect(error.message).toEqual("Validation Error");
+                            expect(error.details).toEqual(
+                                expect.arrayContaining([
+                                    `${label} cannot be more than 255 characters`
+                                ])
+                            );
+                        });
                     });
                 }); // close describe("First Name / Last Name")
             }); // close forEach
@@ -537,17 +503,15 @@ describe("User Service", () => {
                         [IUserColumnKeys.Username]: new Array(32).join("x")
                     };
 
-                    return new UserService(dbConnection)
-                        .updateUser(1, invalidSubmission)
-                        .catch((error) => {
-                            expect(error.statusCode).toEqual(422);
-                            expect(error.message).toEqual("Validation Error");
-                            expect(error.details).toEqual(
-                                expect.arrayContaining([
-                                    `${IUserColumnLabels.Username} cannot be more than 30 characters`
-                                ])
-                            );
-                        });
+                    return userService.updateUser(1, invalidSubmission).catch((error) => {
+                        expect(error.statusCode).toEqual(422);
+                        expect(error.message).toEqual("Validation Error");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `${IUserColumnLabels.Username} cannot be more than 30 characters`
+                            ])
+                        );
+                    });
                 });
 
                 [
@@ -564,17 +528,13 @@ describe("User Service", () => {
                             [IUserColumnKeys.Username]: username
                         };
 
-                        return new UserService(dbConnection)
-                            .updateUser(1, invalidSubmission)
-                            .catch((error) => {
-                                expect(error.statusCode).toEqual(422);
-                                expect(error.message).toEqual("Validation Error");
-                                expect(error.details).toEqual(
-                                    expect.arrayContaining([
-                                        `${IUserColumnLabels.Username} is invalid`
-                                    ])
-                                );
-                            });
+                        return userService.updateUser(1, invalidSubmission).catch((error) => {
+                            expect(error.statusCode).toEqual(422);
+                            expect(error.message).toEqual("Validation Error");
+                            expect(error.details).toEqual(
+                                expect.arrayContaining([`${IUserColumnLabels.Username} is invalid`])
+                            );
+                        });
                     });
                 }); // close forEach
             }); // close describe("Username")
@@ -586,17 +546,15 @@ describe("User Service", () => {
                         [IUserColumnKeys.Email]: new Array(257).join("x")
                     };
 
-                    return new UserService(dbConnection)
-                        .updateUser(1, invalidSubmission)
-                        .catch((error) => {
-                            expect(error.statusCode).toEqual(422);
-                            expect(error.message).toEqual("Validation Error");
-                            expect(error.details).toEqual(
-                                expect.arrayContaining([
-                                    `${IUserColumnLabels.Email} cannot be more than 255 characters`
-                                ])
-                            );
-                        });
+                    return userService.updateUser(1, invalidSubmission).catch((error) => {
+                        expect(error.statusCode).toEqual(422);
+                        expect(error.message).toEqual("Validation Error");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `${IUserColumnLabels.Email} cannot be more than 255 characters`
+                            ])
+                        );
+                    });
                 });
 
                 [
@@ -620,17 +578,13 @@ describe("User Service", () => {
                             [IUserColumnKeys.Email]: invalidEmail
                         };
 
-                        return new UserService(dbConnection)
-                            .updateUser(1, invalidSubmission)
-                            .catch((error) => {
-                                expect(error.statusCode).toEqual(422);
-                                expect(error.message).toEqual("Validation Error");
-                                expect(error.details).toEqual(
-                                    expect.arrayContaining([
-                                        `${IUserColumnLabels.Email} is invalid`
-                                    ])
-                                );
-                            });
+                        return userService.updateUser(1, invalidSubmission).catch((error) => {
+                            expect(error.statusCode).toEqual(422);
+                            expect(error.message).toEqual("Validation Error");
+                            expect(error.details).toEqual(
+                                expect.arrayContaining([`${IUserColumnLabels.Email} is invalid`])
+                            );
+                        });
                     });
                 });
             }); // close describe("Email Address")
@@ -642,17 +596,15 @@ describe("User Service", () => {
                         [IUserColumnKeys.Bio]: new Array(155).join("z")
                     };
 
-                    return new UserService(dbConnection)
-                        .updateUser(1, invalidSubmission)
-                        .catch((error) => {
-                            expect(error.statusCode).toEqual(422);
-                            expect(error.message).toEqual("Validation Error");
-                            expect(error.details).toEqual(
-                                expect.arrayContaining([
-                                    `${IUserColumnLabels.Bio} cannot be more than 150 characters`
-                                ])
-                            );
-                        });
+                    return userService.updateUser(1, invalidSubmission).catch((error) => {
+                        expect(error.statusCode).toEqual(422);
+                        expect(error.message).toEqual("Validation Error");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `${IUserColumnLabels.Bio} cannot be more than 150 characters`
+                            ])
+                        );
+                    });
                 });
             }); // close describe("Bio")
 
@@ -663,17 +615,15 @@ describe("User Service", () => {
                         [IUserColumnKeys.ProfilePicture]: new Array(260).join("z")
                     };
 
-                    return new UserService(dbConnection)
-                        .updateUser(1, invalidSubmission)
-                        .catch((error) => {
-                            expect(error.statusCode).toEqual(422);
-                            expect(error.message).toEqual("Validation Error");
-                            expect(error.details).toEqual(
-                                expect.arrayContaining([
-                                    `${IUserColumnLabels.ProfilePicture} cannot be more than 255 characters`
-                                ])
-                            );
-                        });
+                    return userService.updateUser(1, invalidSubmission).catch((error) => {
+                        expect(error.statusCode).toEqual(422);
+                        expect(error.message).toEqual("Validation Error");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `${IUserColumnLabels.ProfilePicture} cannot be more than 255 characters`
+                            ])
+                        );
+                    });
                 });
             }); // close describe("Profile Picture")
         }); // close describe("Edit")
@@ -681,13 +631,11 @@ describe("User Service", () => {
 
     describe("getUser", () => {
         let user: IUser;
-        let submission = buildValidSubmission("breakfastwithroxy");
+        let submission = buildValidSubmission("dazedandconfused");
 
         beforeAll(async (done) => {
-            return userService.createUser(submission).then((userRecord) => {
-                user = userRecord;
-                done();
-            });
+            user = await userService.createUser(submission);
+            done();
         });
 
         test("returns a user record", () => {
@@ -715,36 +663,6 @@ describe("User Service", () => {
                     expect.arrayContaining([
                         `User with a ${pk} of ${invalidUserNo} could not be found`
                     ])
-                );
-            });
-        });
-
-        test("throws a bad request error (400) if userNo is undefined", async () => {
-            return userService.getUser(undefined).catch((error) => {
-                expect(error.statusCode).toEqual(400);
-                expect(error.message).toEqual("Bad Request");
-                expect(error.details).toEqual(
-                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
-                );
-            });
-        });
-
-        test("throws a bad request error (400) if userNo is null", async () => {
-            return userService.getUser(null).catch((error) => {
-                expect(error.statusCode).toEqual(400);
-                expect(error.message).toEqual("Bad Request");
-                expect(error.details).toEqual(
-                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
-                );
-            });
-        });
-
-        test("throws a bad request error (400) if userNo is a string", async () => {
-            return userService.getUser("123").catch((error) => {
-                expect(error.statusCode).toEqual(400);
-                expect(error.message).toEqual("Bad Request");
-                expect(error.details).toEqual(
-                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
                 );
             });
         });
@@ -786,8 +704,7 @@ describe("User Service", () => {
             return userService.getUser(1).then((userRecord) => {
                 const invalidSubmission = {
                     ...submission,
-                    [IUserColumnKeys.Email]: userRecord.email,
-                    [IUserColumnKeys.Username]: "rage_against_the_machine"
+                    [IUserColumnKeys.Email]: userRecord.email
                 };
 
                 return userService.createUser(invalidSubmission).catch((error) => {
@@ -818,29 +735,21 @@ describe("User Service", () => {
     describe("updateUser", () => {
         let userOne: IUser;
         let userTwo: IUser;
-        let submissionOne = buildValidSubmission("rox_and_layla");
-        let submissionTwo = buildValidSubmission("michael_myers");
 
         beforeAll((done) => {
-            return Promise.all([
-                userService.createUser(submissionOne),
-                userService.createUser(submissionTwo)
-            ]).then(([newUserOne, newUserTwo]) => {
-                userOne = newUserOne;
-                userTwo = newUserTwo;
+            return Promise.all([userService.getUser(1), userService.getUser(2)]).then(
+                ([recordOne, recordTwo]) => {
+                    userOne = recordOne;
+                    userTwo = recordTwo;
 
-                [submissionOne, submissionTwo].forEach((submission) => {
-                    delete submission[IUserColumnKeys.Password];
-                    delete submission[IUserColumnKeys.ConfirmPassword];
-                });
-
-                done();
-            });
+                    done();
+                }
+            );
         });
 
         test("successfully updates a user", () => {
-            const validSubmission: IUpdateUserValues = {
-                ...submissionOne,
+            const validSubmission = {
+                ...buildValidSubmission(userOne.username, true),
                 [IUserColumnKeys.FirstName]: "Eddie",
                 [IUserColumnKeys.LastName]: "Van Halen",
                 [IUserColumnKeys.Bio]: "I invented tapping",
@@ -859,7 +768,7 @@ describe("User Service", () => {
 
         test("throws a conflict error (409) if an email is passed that is already taken", () => {
             const invalidSubmission = {
-                ...submissionTwo,
+                ...buildValidSubmission(userTwo.username, true),
                 [IUserColumnKeys.Email]: userOne.email
             };
 
@@ -874,7 +783,7 @@ describe("User Service", () => {
 
         test("throws a conflict error (409) if a username is passed that is already taken", () => {
             const invalidSubmission = {
-                ...submissionTwo,
+                ...buildValidSubmission(userTwo.username, true),
                 [IUserColumnKeys.Username]: userOne.username
             };
 
@@ -887,39 +796,9 @@ describe("User Service", () => {
             });
         });
 
-        test("throws a bad request error (400) if userNo is undefined", () => {
-            return userService.updateUser(undefined, {}).catch((error) => {
-                expect(error.statusCode).toEqual(400);
-                expect(error.message).toEqual("Bad Request");
-                expect(error.details).toEqual(
-                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
-                );
-            });
-        });
-
-        test("throws a bad request error (400) if userNo is null", () => {
-            return userService.updateUser(null, {}).catch((error) => {
-                expect(error.statusCode).toEqual(400);
-                expect(error.message).toEqual("Bad Request");
-                expect(error.details).toEqual(
-                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
-                );
-            });
-        });
-
-        test("throws a bad request error (400) if userNo is a string", () => {
-            return userService.updateUser("thebiglebowski", {}).catch((error) => {
-                expect(error.statusCode).toEqual(400);
-                expect(error.message).toEqual("Bad Request");
-                expect(error.details).toEqual(
-                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
-                );
-            });
-        });
-
         test("throws a not found error (404) if no user is found", () => {
             const validSubmission: IUpdateUserValues = {
-                ...submissionOne,
+                ...buildValidSubmission(userTwo.username, true),
                 [IUserColumnKeys.FirstName]: "Eddie",
                 [IUserColumnKeys.LastName]: "Van Halen",
                 [IUserColumnKeys.Bio]: "I invented tapping",
@@ -941,9 +820,7 @@ describe("User Service", () => {
         let submission = buildValidSubmission("gurth_mcgurth");
 
         beforeAll(async (done) => {
-            await userService.createUser(submission).then((userRecord) => {
-                newUser = userRecord;
-            });
+            newUser = await userService.createUser(submission);
             done();
         });
 
@@ -954,36 +831,6 @@ describe("User Service", () => {
                     expect(userRecord.userNo).toEqual(newUser.userNo);
                     expect(userRecord.isDeleted).toEqual(1);
                 });
-            });
-        });
-
-        test("throws a bad request error (400) if userNo is undefined", () => {
-            return userService.deleteUser(undefined).catch((error) => {
-                expect(error.statusCode).toEqual(400);
-                expect(error.message).toEqual("Bad Request");
-                expect(error.details).toEqual(
-                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
-                );
-            });
-        });
-
-        test("throws a bad request error (400) if userNo is null", () => {
-            return userService.deleteUser(null).catch((error) => {
-                expect(error.statusCode).toEqual(400);
-                expect(error.message).toEqual("Bad Request");
-                expect(error.details).toEqual(
-                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
-                );
-            });
-        });
-
-        test("throws a bad request error (400) if userNo is a string", () => {
-            return userService.deleteUser("thebiglebowski").catch((error) => {
-                expect(error.statusCode).toEqual(400);
-                expect(error.message).toEqual("Bad Request");
-                expect(error.details).toEqual(
-                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
-                );
             });
         });
 
@@ -1007,11 +854,9 @@ describe("User Service", () => {
             confirmNewPassword: "thedr3@mis0v3r"
         };
 
-        beforeAll((done) => {
-            return userService.createUser(submission).then((userRecord) => {
-                user = userRecord;
-                done();
-            });
+        beforeAll(async (done) => {
+            user = await userService.createUser(submission);
+            done();
         });
 
         test("successfully updates a user's password", () => {
@@ -1030,36 +875,6 @@ describe("User Service", () => {
                             }
                         );
                     });
-            });
-        });
-
-        test("throws a bad request error (400) if userNo is undefined", () => {
-            return userService.updatePassword(undefined, passwordSubmission).catch((error) => {
-                expect(error.statusCode).toEqual(400);
-                expect(error.message).toEqual("Bad Request");
-                expect(error.details).toEqual(
-                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
-                );
-            });
-        });
-
-        test("throws a bad request error (400) if userNo is null", () => {
-            return userService.updatePassword(null, passwordSubmission).catch((error) => {
-                expect(error.statusCode).toEqual(400);
-                expect(error.message).toEqual("Bad Request");
-                expect(error.details).toEqual(
-                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
-                );
-            });
-        });
-
-        test("throws a bad request error (400) if userNo is a string", () => {
-            return userService.updatePassword("123", passwordSubmission).catch((error) => {
-                expect(error.statusCode).toEqual(400);
-                expect(error.message).toEqual("Bad Request");
-                expect(error.details).toEqual(
-                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
-                );
             });
         });
 
@@ -1094,4 +909,42 @@ describe("User Service", () => {
             });
         });
     }); // close describe("updatePassword")
+
+    describe("validateUserNo", () => {
+        test("successfully resolves if userNo is valid", () => {
+            return userService.validateUserNo(1).then((response) => {
+                expect(response).toBe(undefined);
+            });
+        });
+
+        test("throws a bad request error (400) if userNo is undefined", () => {
+            return userService.validateUserNo(undefined).catch((error) => {
+                expect(error.statusCode).toEqual(400);
+                expect(error.message).toEqual("Bad Request");
+                expect(error.details).toEqual(
+                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
+                );
+            });
+        });
+
+        test("throws a bad request error (400) if userNo is null", () => {
+            return userService.validateUserNo(null).catch((error) => {
+                expect(error.statusCode).toEqual(400);
+                expect(error.message).toEqual("Bad Request");
+                expect(error.details).toEqual(
+                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
+                );
+            });
+        });
+
+        test("throws a bad request error (400) if userNo is a string", () => {
+            return userService.validateUserNo("thebiglebowski").catch((error) => {
+                expect(error.statusCode).toEqual(400);
+                expect(error.message).toEqual("Bad Request");
+                expect(error.details).toEqual(
+                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
+                );
+            });
+        });
+    }); // close describe("validateUserNo")
 }); // close describe("User Service")
