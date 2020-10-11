@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import knex from "knex";
 
+import { BaseService, IListQueryOptions, SelectableColumn } from "./Base";
 import { IFormSubmission, IFormValidation, validateSubmission } from "../lib/validateSubmission";
 
 export interface IUser {
@@ -105,8 +106,7 @@ const BCRYPT_HASH_SALT_ROUNDS = 10;
  *
  * @param dbConnection Knex connection used to read/write to the database
  */
-class UserService {
-    private dbConnection: knex;
+class UserService extends BaseService {
     private readonly pk = "userNo";
     private readonly table = "users";
     private readonly tableColumns: IUserColumnDefinition[] = [
@@ -295,7 +295,7 @@ class UserService {
     ];
 
     constructor(dbConnection: knex) {
-        this.dbConnection = dbConnection;
+        super(dbConnection);
     }
 
     /**
@@ -471,24 +471,17 @@ class UserService {
         });
     }
 
-    getUserList(
-        options = {
-            where: {},
-            itemsPerPage: 10,
-            pageNo: 1,
-            orderBy: this.pk
-        }
-    ): Promise<IUser[]> {
-        const selectableColumns = this.tableColumns
+    /**
+     * Fetches a list of user records
+     *
+     * @param queryOptions Additional filters to query by
+     */
+    getUserList(queryOptions: IListQueryOptions = {}): Promise<IUser[]> {
+        const selectableColumns: SelectableColumn[] = this.tableColumns
             .filter((column) => column.isSelectable)
             .map((column) => column.key);
 
-        return this.dbConnection(this.table)
-            .select(selectableColumns)
-            .where(options.where)
-            .offset((options.pageNo - 1) * options.itemsPerPage)
-            .limit(options.itemsPerPage)
-            .orderBy(options.orderBy);
+        return super.getList(this.table, this.pk, selectableColumns, queryOptions);
     }
 
     /**

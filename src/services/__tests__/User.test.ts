@@ -629,6 +629,52 @@ describe("User Service", () => {
         }); // close describe("Edit")
     }); // close describe("Column Validation")
 
+    describe("getUserList", () => {
+        test("returns a list of users", () => {
+            return userService.getUserList().then((userList) => {
+                expect(userList.length).toEqual(10);
+
+                userList.forEach((user) => {
+                    userRecordKeys.forEach((key) => {
+                        expect(user).toHaveProperty(key);
+                    });
+                });
+            });
+        });
+
+        test("successfully return the correct amount of items when itemsPerPage is passed", () => {
+            return userService.getUserList({ itemsPerPage: 3 }).then((userList) => {
+                expect(userList.length).toEqual(3);
+
+                userList.forEach((user) => {
+                    userRecordKeys.forEach((key) => {
+                        expect(user).toHaveProperty(key);
+                    });
+                });
+            });
+        });
+
+        test("successfuly returns only selectable columns", () => {
+            const selectableColumns = userService.tableColumns
+                .filter((column) => column.isSelectable)
+                .map((column) => column.key);
+            const nonselectableColumns = userService.tableColumns
+                .filter((column) => !column.isSelectable)
+                .map((column) => column.key);
+
+            return userService.getUserList().then((userList) => {
+                userList.forEach((user) => {
+                    selectableColumns.forEach((column) => {
+                        expect(user).toHaveProperty(column);
+                    });
+                    nonselectableColumns.forEach((column) => {
+                        expect(user).not.toHaveProperty(column);
+                    });
+                });
+            });
+        });
+    }); // close describe("getUserList")
+
     describe("getUser", () => {
         let user: IUser;
         let submission = buildValidSubmission("dazedandconfused");
@@ -773,6 +819,7 @@ describe("User Service", () => {
             };
 
             return userService.updateUser(userTwo.userNo, invalidSubmission).catch((error) => {
+                console.log(error);
                 expect(error.statusCode).toEqual(409);
                 expect(error.message).toEqual("Conflict Error");
                 expect(error.details).toEqual(
