@@ -1,10 +1,10 @@
 import bcrypt from "bcrypt";
 import knex from "knex";
 
-import { BaseService, IListQueryOptions, SelectableColumn } from "./Base";
+import { BaseService, IGetListRecord, IListQueryOptions, SelectableColumn } from "./Base";
 import { IFormSubmission, IFormValidation, validateSubmission } from "../lib/validateSubmission";
 
-export interface IUser {
+export interface IUserRecord {
     userNo: number;
     firstName: string;
     lastName: string;
@@ -21,6 +21,10 @@ export interface IUser {
     lastUpdated: Date;
     lastLoginDate?: Date;
     password?: string;
+}
+
+export interface IUserList extends IGetListRecord {
+    data: IUserRecord[];
 }
 
 export interface ICreateUserValues {
@@ -303,7 +307,7 @@ class UserService extends BaseService {
      *
      * @param userSubmission User information used to create a new user
      */
-    async createUser(userSubmission: ICreateUserValues): Promise<IUser> {
+    async createUser(userSubmission: ICreateUserValues): Promise<IUserRecord> {
         const createUserValidation: IFormValidation = this.tableColumns
             .filter((column) => column.isRequiredOnCreate)
             .map((column) => ({ ...column, isRequired: true }));
@@ -367,7 +371,7 @@ class UserService extends BaseService {
      * @param userNo The user number used to look for the correct user
      * @param submission User information used to update a user record
      */
-    updateUser(userNo: number, submission: IUpdateUserValues): Promise<IUser> {
+    updateUser(userNo: number, submission: IUpdateUserValues): Promise<IUserRecord> {
         let cleanSubmission: IUpdateUserValues = {};
         const updateUserValidation: IFormValidation = this.tableColumns.filter(
             (column) => column.canEdit
@@ -437,7 +441,7 @@ class UserService extends BaseService {
      */
     deleteUser(userNo: number): Promise<boolean> {
         return this.validateUserNo(userNo).then(() => {
-            return this.getUser(userNo).then((userRecord: IUser) => {
+            return this.getUser(userNo).then((userRecord: IUserRecord) => {
                 return this.dbConnection(this.table)
                     .update({ isDeleted: true })
                     .where(this.pk, userRecord.userNo)
@@ -451,7 +455,7 @@ class UserService extends BaseService {
      *
      * @param userNo The user number used to look for the correct user
      */
-    getUser(userNo: number): Promise<IUser> {
+    getUser(userNo: number): Promise<IUserRecord> {
         return this.validateUserNo(userNo).then(() => {
             return this.dbConnection(this.table)
                 .first("*")
@@ -476,7 +480,7 @@ class UserService extends BaseService {
      *
      * @param queryOptions Additional filters to query by
      */
-    getUserList(queryOptions: IListQueryOptions = {}): Promise<IUser[]> {
+    getUserList(queryOptions: IListQueryOptions = {}): Promise<IUserList> {
         const selectableColumns: SelectableColumn[] = this.tableColumns
             .filter((column) => column.isSelectable)
             .map((column) => column.key);
@@ -490,7 +494,7 @@ class UserService extends BaseService {
      * @param userNo The user number used to look for the correct user
      * @param submission An object containing the user's current and new password information
      */
-    updatePassword(userNo: number, submission: IUpdatePasswordValues): Promise<IUser> {
+    updatePassword(userNo: number, submission: IUpdatePasswordValues): Promise<IUserRecord> {
         const { currentPassword, newPassword, confirmNewPassword } = submission;
 
         if (newPassword !== confirmNewPassword) {

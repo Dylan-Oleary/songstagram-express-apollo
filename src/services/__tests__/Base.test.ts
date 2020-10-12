@@ -41,13 +41,15 @@ describe("Base Service", () => {
         };
 
         test("successfully returns a list of records", () => {
-            return baseService.getList(tableName, pk, selectableColumns, options).then((list) => {
-                list.forEach((record) => {
-                    expect.objectContaining({
-                        [pk]: record[pk]
+            return baseService
+                .getList(tableName, pk, selectableColumns, options)
+                .then(({ data }) => {
+                    data.forEach((record) => {
+                        expect.objectContaining({
+                            [pk]: record[pk]
+                        });
                     });
                 });
-            });
         });
 
         test("successfully returns the correct amount of items", () => {
@@ -55,8 +57,8 @@ describe("Base Service", () => {
 
             return baseService
                 .getList(tableName, pk, selectableColumns, { ...options, itemsPerPage })
-                .then((list) => {
-                    expect(list.length).toEqual(itemsPerPage);
+                .then(({ data }) => {
+                    expect(data.length).toEqual(itemsPerPage);
                 });
         });
 
@@ -66,8 +68,8 @@ describe("Base Service", () => {
 
             return baseService
                 .getList(tableName, pk, selectableColumns, { ...options, itemsPerPage, pageNo })
-                .then((list) => {
-                    expect(list.length).toEqual(1);
+                .then(({ data }) => {
+                    expect(data.length).toEqual(1);
                     expect.arrayContaining([expect.objectContaining({ [pk]: pageNo })]);
                 });
         });
@@ -78,13 +80,13 @@ describe("Base Service", () => {
                     ...options,
                     orderBy: { ...options.orderBy, direction: OrderDirection.ASC }
                 })
-                .then((list) => {
+                .then(({ data }) => {
                     let expectedKey = 1;
 
-                    list.forEach((record, index) => {
-                        if (index > 0 && index < list.length - 1) {
+                    data.forEach((record, index) => {
+                        if (index > 0 && index < data.length - 1) {
                             expect(record[pk]).toEqual(expectedKey);
-                            expect(record[pk]).toBeLessThan(list[index + 1][pk]);
+                            expect(record[pk]).toBeLessThan(data[index + 1][pk]);
                         } else {
                             expect(record[pk]).toEqual(expectedKey);
                         }
@@ -100,13 +102,13 @@ describe("Base Service", () => {
                     ...options,
                     orderBy: { ...options.orderBy, direction: OrderDirection.DESC }
                 })
-                .then((list) => {
-                    let expectedKey = list.length;
+                .then(({ data }) => {
+                    let expectedKey = data.length;
 
-                    list.forEach((record, index) => {
-                        if (index > 0 && index < list.length - 1) {
+                    data.forEach((record, index) => {
+                        if (index > 0 && index < data.length - 1) {
                             expect(record[pk]).toEqual(expectedKey);
-                            expect(record[pk]).toBeGreaterThan(list[index + 1][pk]);
+                            expect(record[pk]).toBeGreaterThan(data[index + 1][pk]);
                         } else {
                             expect(record[pk]).toEqual(expectedKey);
                         }
@@ -114,6 +116,97 @@ describe("Base Service", () => {
                         expectedKey--;
                     });
                 });
+        });
+
+        describe("Pagination", () => {
+            test("successfully returns a pagination object", () => {
+                const queryOptions = { ...options };
+
+                queryOptions.itemsPerPage = 3;
+                queryOptions.pageNo = 2;
+
+                return Promise.all([
+                    baseService.getList(tableName, pk, selectableColumns, queryOptions),
+                    baseService.getCount(tableName, pk, queryOptions.where)
+                ]).then(([recordSet, count]) => {
+                    expect(recordSet).toHaveProperty("pagination");
+                    expect(recordSet.pagination).toEqual({
+                        currentPage: queryOptions.pageNo,
+                        itemsPerPage: queryOptions.itemsPerPage,
+                        nextPage: queryOptions.pageNo === 1 ? null : queryOptions.pageNo + 1,
+                        prevPage: queryOptions.pageNo === 1 ? null : queryOptions.pageNo - 1,
+                        totalPages: Math.ceil(count / queryOptions.itemsPerPage),
+                        totalRecords: count
+                    });
+                });
+            });
+
+            test("successfully returns the correct pagination object if no records are found", () => {
+                const queryOptions = { ...options };
+
+                queryOptions.where = { [pk]: 10000 };
+
+                return baseService
+                    .getList(tableName, pk, selectableColumns, queryOptions)
+                    .then((recordSet) => {
+                        expect(recordSet).toHaveProperty("pagination");
+                        expect(recordSet.pagination).toEqual({
+                            currentPage: 1,
+                            itemsPerPage: queryOptions.itemsPerPage,
+                            nextPage: null,
+                            prevPage: null,
+                            totalPages: 0,
+                            totalRecords: 0
+                        });
+                    });
+            });
+
+            test("successfully returns the correct pagination object if the requested page has no records", () => {
+                const queryOptions = { ...options };
+
+                queryOptions.pageNo = 1000;
+                queryOptions.itemsPerPage = 10000;
+
+                return baseService
+                    .getList(tableName, pk, selectableColumns, queryOptions)
+                    .then((recordSet) => {
+                        expect(recordSet.data).toEqual([]);
+                        expect(recordSet).toHaveProperty("pagination");
+                        expect(recordSet.pagination).toEqual({
+                            currentPage: queryOptions.pageNo,
+                            itemsPerPage: queryOptions.itemsPerPage,
+                            nextPage: null,
+                            prevPage: null,
+                            totalPages: 1,
+                            totalRecords: 10
+                        });
+                    });
+            });
+
+            test("successfully returns a 'nextPage' of null if the current page is the last page", () => {
+                const queryOptions = { ...options };
+
+                queryOptions.itemsPerPage = 3;
+                queryOptions.pageNo = 4;
+
+                return baseService
+                    .getList(tableName, pk, selectableColumns, queryOptions)
+                    .then((recordSet) => {
+                        expect(recordSet).toHaveProperty("pagination");
+                        expect(recordSet.pagination).toMatchObject({ nextPage: null });
+                    });
+            });
+
+            test("successfully returns a 'prevPage' of null if the current page is the first page", () => {
+                const queryOptions = { ...options };
+
+                return baseService
+                    .getList(tableName, pk, selectableColumns, queryOptions)
+                    .then((recordSet) => {
+                        expect(recordSet).toHaveProperty("pagination");
+                        expect(recordSet.pagination).toMatchObject({ prevPage: null });
+                    });
+            });
         });
     }); // close describe("getList")
 
@@ -137,8 +230,8 @@ describe("Base Service", () => {
             return Promise.all([
                 baseService.getList(tableName, pk, selectableColumns, options),
                 baseService.getCount(tableName, pk, options.where)
-            ]).then(([list, count]) => {
-                expect(list.length).toEqual(count);
+            ]).then(([{ data }, count]) => {
+                expect(data.length).toEqual(count);
             });
         });
     }); // close describe("getCount")

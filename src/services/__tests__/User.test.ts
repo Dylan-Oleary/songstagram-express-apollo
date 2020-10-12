@@ -632,9 +632,9 @@ describe("User Service", () => {
     describe("getUserList", () => {
         test("returns a list of users", () => {
             return userService.getUserList().then((userList) => {
-                expect(userList.length).toEqual(10);
+                expect(userList.data.length).toEqual(10);
 
-                userList.forEach((user) => {
+                userList.data.forEach((user) => {
                     userRecordKeys.forEach((key) => {
                         expect(user).toHaveProperty(key);
                     });
@@ -644,9 +644,9 @@ describe("User Service", () => {
 
         test("successfully return the correct amount of items when itemsPerPage is passed", () => {
             return userService.getUserList({ itemsPerPage: 3 }).then((userList) => {
-                expect(userList.length).toEqual(3);
+                expect(userList.data.length).toEqual(3);
 
-                userList.forEach((user) => {
+                userList.data.forEach((user) => {
                     userRecordKeys.forEach((key) => {
                         expect(user).toHaveProperty(key);
                     });
@@ -663,7 +663,7 @@ describe("User Service", () => {
                 .map((column) => column.key);
 
             return userService.getUserList().then((userList) => {
-                userList.forEach((user) => {
+                userList.data.forEach((user) => {
                     selectableColumns.forEach((column) => {
                         expect(user).toHaveProperty(column);
                     });
