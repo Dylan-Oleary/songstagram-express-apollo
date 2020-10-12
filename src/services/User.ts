@@ -1,8 +1,9 @@
 import bcrypt from "bcrypt";
+import extend from "extend";
 import knex from "knex";
 
-import { BaseService, IGetListRecord, IListQueryOptions, SelectableColumn } from "./Base";
-import { IFormSubmission, IFormValidation, validateSubmission } from "../lib/validateSubmission";
+import { BaseService, IColumnDefinition, IGetListRecord, IListQueryOptions } from "./Base";
+import { IFormValidation, validateSubmission } from "../lib/validateSubmission";
 
 export interface IUserRecord {
     userNo: number;
@@ -91,13 +92,9 @@ export enum IUserColumnLabels {
     LastLoginDate = "Last Login Date"
 }
 
-export interface IUserColumnDefinition {
+export interface IUserColumnDefinition extends IColumnDefinition {
     key: IUserColumnKeys;
-    isSelectable: boolean;
-    isRequiredOnCreate: boolean;
-    canEdit: boolean;
     label: IUserColumnLabels;
-    check?: (value: string, submission?: IFormSubmission) => undefined | Error;
 }
 
 export const emailAddressRegExpValue = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
@@ -117,6 +114,7 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.UserNo,
             isSelectable: true,
+            isSortable: true,
             isRequiredOnCreate: false,
             canEdit: false,
             label: IUserColumnLabels.UserNo
@@ -124,6 +122,7 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.FirstName,
             isSelectable: true,
+            isSortable: true,
             isRequiredOnCreate: true,
             canEdit: true,
             label: IUserColumnLabels.FirstName,
@@ -139,6 +138,7 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.LastName,
             isSelectable: true,
+            isSortable: true,
             isRequiredOnCreate: true,
             canEdit: true,
             label: IUserColumnLabels.LastName,
@@ -154,6 +154,7 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.Username,
             isSelectable: true,
+            isSortable: true,
             isRequiredOnCreate: true,
             canEdit: true,
             label: IUserColumnLabels.Username,
@@ -171,6 +172,7 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.Email,
             isSelectable: true,
+            isSortable: true,
             isRequiredOnCreate: true,
             canEdit: true,
             label: IUserColumnLabels.Email,
@@ -188,6 +190,7 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.Password,
             isSelectable: false,
+            isSortable: false,
             isRequiredOnCreate: true,
             canEdit: false,
             label: IUserColumnLabels.Password,
@@ -202,6 +205,7 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.ConfirmPassword,
             isSelectable: false,
+            isSortable: false,
             isRequiredOnCreate: true,
             canEdit: false,
             label: IUserColumnLabels.ConfirmPassword,
@@ -215,6 +219,7 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.Bio,
             isSelectable: true,
+            isSortable: false,
             isRequiredOnCreate: false,
             canEdit: true,
             label: IUserColumnLabels.Bio,
@@ -228,6 +233,7 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.ProfilePicture,
             isSelectable: true,
+            isSortable: false,
             isRequiredOnCreate: false,
             canEdit: true,
             label: IUserColumnLabels.ProfilePicture,
@@ -243,6 +249,7 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.PostCount,
             isSelectable: true,
+            isSortable: true,
             isRequiredOnCreate: false,
             canEdit: false,
             label: IUserColumnLabels.PostCount
@@ -250,6 +257,7 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.FollowerCount,
             isSelectable: true,
+            isSortable: true,
             isRequiredOnCreate: false,
             canEdit: false,
             label: IUserColumnLabels.FollowerCount
@@ -257,6 +265,7 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.FollowingCount,
             isSelectable: true,
+            isSortable: true,
             isRequiredOnCreate: false,
             canEdit: false,
             label: IUserColumnLabels.FollowingCount
@@ -264,6 +273,7 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.IsDeleted,
             isSelectable: true,
+            isSortable: false,
             isRequiredOnCreate: false,
             canEdit: false,
             label: IUserColumnLabels.IsDeleted
@@ -271,6 +281,7 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.IsBanned,
             isSelectable: true,
+            isSortable: false,
             isRequiredOnCreate: false,
             canEdit: false,
             label: IUserColumnLabels.IsBanned
@@ -278,6 +289,7 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.CreatedDate,
             isSelectable: true,
+            isSortable: true,
             isRequiredOnCreate: false,
             canEdit: false,
             label: IUserColumnLabels.CreatedDate
@@ -285,6 +297,7 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.LastUpdated,
             isSelectable: true,
+            isSortable: true,
             isRequiredOnCreate: false,
             canEdit: false,
             label: IUserColumnLabels.LastUpdated
@@ -292,6 +305,7 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.LastLoginDate,
             isSelectable: true,
+            isSortable: true,
             isRequiredOnCreate: false,
             canEdit: false,
             label: IUserColumnLabels.LastLoginDate
@@ -481,11 +495,21 @@ class UserService extends BaseService {
      * @param queryOptions Additional filters to query by
      */
     getUserList(queryOptions: IListQueryOptions = {}): Promise<IUserList> {
-        const selectableColumns: SelectableColumn[] = this.tableColumns
-            .filter((column) => column.isSelectable)
-            .map((column) => column.key);
+        const defaultOptions = {
+            where: {
+                isDeleted: false,
+                isBanned: false
+            },
+            itemsPerPage: 10,
+            pageNo: 1,
+            orderBy: {
+                direction: "desc",
+                column: this.pk
+            }
+        };
+        const options = extend(true, defaultOptions, queryOptions);
 
-        return super.getList(this.table, this.pk, selectableColumns, queryOptions);
+        return super.getList(this.table, this.pk, this.tableColumns, options);
     }
 
     /**

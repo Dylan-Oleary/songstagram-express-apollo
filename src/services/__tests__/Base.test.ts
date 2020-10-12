@@ -27,9 +27,7 @@ describe("Base Service", () => {
     describe("getList", () => {
         const tableName = "users";
         const pk = "userNo";
-        const selectableColumns = userService.tableColumns
-            .filter((column) => column.isSelectable)
-            .map((column) => column.key);
+        const tableColumns = userService.tableColumns;
         const options = {
             where: {},
             itemsPerPage: 10,
@@ -41,22 +39,20 @@ describe("Base Service", () => {
         };
 
         test("successfully returns a list of records", () => {
-            return baseService
-                .getList(tableName, pk, selectableColumns, options)
-                .then(({ data }) => {
-                    data.forEach((record) => {
-                        expect.objectContaining({
-                            [pk]: record[pk]
-                        });
+            return baseService.getList(tableName, pk, tableColumns, options).then(({ data }) => {
+                data.forEach((record) => {
+                    expect.objectContaining({
+                        [pk]: record[pk]
                     });
                 });
+            });
         });
 
         test("successfully returns the correct amount of items", () => {
             const itemsPerPage = 5;
 
             return baseService
-                .getList(tableName, pk, selectableColumns, { ...options, itemsPerPage })
+                .getList(tableName, pk, tableColumns, { ...options, itemsPerPage })
                 .then(({ data }) => {
                     expect(data.length).toEqual(itemsPerPage);
                 });
@@ -67,7 +63,7 @@ describe("Base Service", () => {
             const itemsPerPage = 1;
 
             return baseService
-                .getList(tableName, pk, selectableColumns, { ...options, itemsPerPage, pageNo })
+                .getList(tableName, pk, tableColumns, { ...options, itemsPerPage, pageNo })
                 .then(({ data }) => {
                     expect(data.length).toEqual(1);
                     expect.arrayContaining([expect.objectContaining({ [pk]: pageNo })]);
@@ -76,7 +72,7 @@ describe("Base Service", () => {
 
         test("successfully return the list in ascending order", () => {
             return baseService
-                .getList(tableName, pk, selectableColumns, {
+                .getList(tableName, pk, tableColumns, {
                     ...options,
                     orderBy: { ...options.orderBy, direction: OrderDirection.ASC }
                 })
@@ -98,7 +94,7 @@ describe("Base Service", () => {
 
         test("successfully returns the list in descending order", () => {
             return baseService
-                .getList(tableName, pk, selectableColumns, {
+                .getList(tableName, pk, tableColumns, {
                     ...options,
                     orderBy: { ...options.orderBy, direction: OrderDirection.DESC }
                 })
@@ -118,6 +114,52 @@ describe("Base Service", () => {
                 });
         });
 
+        describe("Order By", () => {
+            test("throws a bad request error (400) if the passed column is not sortable", () => {
+                const nonSortableColumn = tableColumns.filter((column) => !column.isSortable)[0];
+
+                return baseService
+                    .getList(tableName, pk, tableColumns, {
+                        ...options,
+                        orderBy: {
+                            ...options.orderBy,
+                            column: nonSortableColumn.key
+                        }
+                    })
+                    .catch((error) => {
+                        expect(error.statusCode).toEqual(400);
+                        expect(error.message).toEqual("Bad Request");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `You cannot sort by column: ${nonSortableColumn.key}`
+                            ])
+                        );
+                    });
+            });
+
+            test("throws a bad request error (400) if the passed direction is invalid", () => {
+                const invalidSortDirection = "up";
+
+                return baseService
+                    .getList(tableName, pk, tableColumns, {
+                        ...options,
+                        orderBy: {
+                            ...options.orderBy,
+                            direction: invalidSortDirection
+                        }
+                    })
+                    .catch((error) => {
+                        expect(error.statusCode).toEqual(400);
+                        expect(error.message).toEqual("Bad Request");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `You cannot sort by direction: ${invalidSortDirection}`
+                            ])
+                        );
+                    });
+            });
+        }); // close describe("Order By")
+
         describe("Pagination", () => {
             test("successfully returns a pagination object", () => {
                 const queryOptions = { ...options };
@@ -126,7 +168,7 @@ describe("Base Service", () => {
                 queryOptions.pageNo = 2;
 
                 return Promise.all([
-                    baseService.getList(tableName, pk, selectableColumns, queryOptions),
+                    baseService.getList(tableName, pk, tableColumns, queryOptions),
                     baseService.getCount(tableName, pk, queryOptions.where)
                 ]).then(([recordSet, count]) => {
                     expect(recordSet).toHaveProperty("pagination");
@@ -147,7 +189,7 @@ describe("Base Service", () => {
                 queryOptions.where = { [pk]: 10000 };
 
                 return baseService
-                    .getList(tableName, pk, selectableColumns, queryOptions)
+                    .getList(tableName, pk, tableColumns, queryOptions)
                     .then((recordSet) => {
                         expect(recordSet).toHaveProperty("pagination");
                         expect(recordSet.pagination).toEqual({
@@ -168,7 +210,7 @@ describe("Base Service", () => {
                 queryOptions.itemsPerPage = 10000;
 
                 return baseService
-                    .getList(tableName, pk, selectableColumns, queryOptions)
+                    .getList(tableName, pk, tableColumns, queryOptions)
                     .then((recordSet) => {
                         expect(recordSet.data).toEqual([]);
                         expect(recordSet).toHaveProperty("pagination");
@@ -190,7 +232,7 @@ describe("Base Service", () => {
                 queryOptions.pageNo = 4;
 
                 return baseService
-                    .getList(tableName, pk, selectableColumns, queryOptions)
+                    .getList(tableName, pk, tableColumns, queryOptions)
                     .then((recordSet) => {
                         expect(recordSet).toHaveProperty("pagination");
                         expect(recordSet.pagination).toMatchObject({ nextPage: null });
@@ -201,7 +243,7 @@ describe("Base Service", () => {
                 const queryOptions = { ...options };
 
                 return baseService
-                    .getList(tableName, pk, selectableColumns, queryOptions)
+                    .getList(tableName, pk, tableColumns, queryOptions)
                     .then((recordSet) => {
                         expect(recordSet).toHaveProperty("pagination");
                         expect(recordSet.pagination).toMatchObject({ prevPage: null });
@@ -213,9 +255,7 @@ describe("Base Service", () => {
     describe("getCount", () => {
         const tableName = "users";
         const pk = "userNo";
-        const selectableColumns = userService.tableColumns
-            .filter((column) => column.isSelectable)
-            .map((column) => column.key);
+        const tableColumns = userService.tableColumns;
         const options = {
             where: { [pk]: 2 },
             itemsPerPage: 10,
@@ -228,7 +268,7 @@ describe("Base Service", () => {
 
         test("successfully returns the correct count", () => {
             return Promise.all([
-                baseService.getList(tableName, pk, selectableColumns, options),
+                baseService.getList(tableName, pk, tableColumns, options),
                 baseService.getCount(tableName, pk, options.where)
             ]).then(([{ data }, count]) => {
                 expect(data.length).toEqual(count);
