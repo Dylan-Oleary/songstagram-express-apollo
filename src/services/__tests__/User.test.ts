@@ -4,7 +4,13 @@ import faker from "faker";
 import path from "path";
 
 import { dbConnection } from "../../knex/db";
-import { IUpdateUserValues, IUser, IUserColumnKeys, IUserColumnLabels, UserService } from "../User";
+import {
+    IUpdateUserValues,
+    IUserColumnKeys,
+    IUserColumnLabels,
+    IUserRecord,
+    UserService
+} from "../User";
 
 describe("User Service", () => {
     const pk = "userNo";
@@ -676,7 +682,7 @@ describe("User Service", () => {
     }); // close describe("getUserList")
 
     describe("getUser", () => {
-        let user: IUser;
+        let user: IUserRecord;
         let submission = buildValidSubmission("dazedandconfused");
 
         beforeAll(async (done) => {
@@ -713,6 +719,132 @@ describe("User Service", () => {
             });
         });
     }); // close describe("getUser")
+
+    describe("searchUser", () => {
+        let user: IUserRecord;
+        const validColumns = userService.tableColumns
+            .filter((column) => column.isSearchable)
+            .map((column) => column.key);
+        const invalidColumns = userService.tableColumns
+            .filter((column) => !column.isSearchable)
+            .map((column) => column.key);
+
+        beforeAll(async (done) => {
+            user = await userService.getUser(Math.ceil(Math.random() * (10 - 1) + 1));
+            done();
+        });
+
+        test("returns a list of users when passed no search columns", () => {
+            return userService
+                .searchUser(user.username.slice(0, user.username.length - 1))
+                .then((users) => {
+                    expect(users).toContainEqual(
+                        expect.objectContaining({
+                            username: user.username,
+                            isDeleted: 0,
+                            isBanned: 0
+                        })
+                    );
+                    expect(users.length).toBeGreaterThan(0);
+                });
+        });
+
+        test("returns a list of users when passed a valid search column", () => {
+            const validColumn = validColumns[Math.floor(Math.random() * validColumns.length)];
+
+            return userService
+                .searchUser(user[validColumn].slice(0, user[validColumn].length - 1), [validColumn])
+                .then((users) => {
+                    expect(users).toContainEqual(
+                        expect.objectContaining({
+                            [validColumn]: user[validColumn],
+                            isDeleted: 0,
+                            isBanned: 0
+                        })
+                    );
+                    expect(users.length).toBeGreaterThan(0);
+                });
+        });
+
+        test("returns a list of users when passed multiple valid search columns", () => {
+            return userService
+                .searchUser(
+                    user[IUserColumnKeys.Username].slice(
+                        0,
+                        user[IUserColumnKeys.Username].length - 1
+                    ),
+                    validColumns
+                )
+                .then((users) => {
+                    expect(users).toContainEqual(
+                        expect.objectContaining({
+                            [IUserColumnKeys.Username]: user[IUserColumnKeys.Username],
+                            isDeleted: 0,
+                            isBanned: 0
+                        })
+                    );
+                    expect(users.length).toBeGreaterThan(0);
+                });
+        });
+
+        validColumns.forEach((column) => {
+            test(`returns a list of users when searching by: ${column}`, () => {
+                return userService
+                    .searchUser(user[column].slice(0, user[column].length - 1), [column])
+                    .then((users) => {
+                        expect(users).toContainEqual(
+                            expect.objectContaining({
+                                [column]: user[column],
+                                isDeleted: 0,
+                                isBanned: 0
+                            })
+                        );
+                        expect(users.length).toBeGreaterThan(0);
+                    });
+            });
+        });
+
+        test("returns an empty array when no users are found", () => {
+            return userService.searchUser(new Array(50).join("z")).then((users) => {
+                expect(users).toEqual([]);
+                expect(users.length).toEqual(0);
+            });
+        });
+
+        test("throws a bad request error (400) if passed an invalid search column", () => {
+            const column = invalidColumns[Math.floor(Math.random() * invalidColumns.length)];
+
+            return userService.searchUser("error time!", [column]).catch((error) => {
+                expect(error.statusCode).toEqual(400);
+                expect(error.message).toEqual("Bad Request");
+                expect(error.details).toEqual(
+                    expect.arrayContaining([`You cannot search on column: ${column}`])
+                );
+            });
+        });
+
+        test("throws a bad request error (400) if passed multiple invalid search columns", () => {
+            return userService.searchUser("error time!", invalidColumns).catch((error) => {
+                expect(error.statusCode).toEqual(400);
+                expect(error.message).toEqual("Bad Request");
+                expect(error.details).toEqual(
+                    expect.arrayContaining([`You cannot search on column: ${invalidColumns[0]}`])
+                );
+            });
+        });
+
+        [100, "string", true, { key: 120 }].forEach((invalidColumn) => {
+            test(`throws a bad request error (400) if search columns are of invalid type. Passed: ${typeof invalidColumn}`, () => {
+                return userService.searchUser("error time!", "throwmeaway!").catch((error) => {
+                    expect(error.statusCode).toEqual(400);
+                    expect(error.message).toEqual("Bad Request");
+                    expect(error.details).toEqual(
+                        expect.arrayContaining(["Parameter Error: Search columns must be an array"])
+                    );
+                });
+            });
+        });
+    }); // close describe("searchUser")
 
     describe("createUser", () => {
         let newUser: IUser;
@@ -779,8 +911,8 @@ describe("User Service", () => {
     }); //close describe("createUser")
 
     describe("updateUser", () => {
-        let userOne: IUser;
-        let userTwo: IUser;
+        let userOne: IUserRecord;
+        let userTwo: IUserRecord;
 
         beforeAll((done) => {
             return Promise.all([userService.getUser(1), userService.getUser(2)]).then(
@@ -893,7 +1025,7 @@ describe("User Service", () => {
     }); // close describe("deleteUser")
 
     describe("updatePassword", () => {
-        let user: IUser;
+        let user: IUserRecord;
         let submission = buildValidSubmission("thedirtynil");
         let passwordSubmission = {
             currentPassword: "M0N3y!",

@@ -114,6 +114,8 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.UserNo,
             isSelectable: true,
+            isFilterable: true,
+            isSearchable: false,
             isSortable: true,
             isRequiredOnCreate: false,
             canEdit: false,
@@ -122,6 +124,8 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.FirstName,
             isSelectable: true,
+            isFilterable: true,
+            isSearchable: true,
             isSortable: true,
             isRequiredOnCreate: true,
             canEdit: true,
@@ -138,6 +142,8 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.LastName,
             isSelectable: true,
+            isFilterable: true,
+            isSearchable: false,
             isSortable: true,
             isRequiredOnCreate: true,
             canEdit: true,
@@ -154,6 +160,8 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.Username,
             isSelectable: true,
+            isFilterable: true,
+            isSearchable: true,
             isSortable: true,
             isRequiredOnCreate: true,
             canEdit: true,
@@ -172,6 +180,8 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.Email,
             isSelectable: true,
+            isFilterable: true,
+            isSearchable: false,
             isSortable: true,
             isRequiredOnCreate: true,
             canEdit: true,
@@ -190,6 +200,8 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.Password,
             isSelectable: false,
+            isFilterable: false,
+            isSearchable: false,
             isSortable: false,
             isRequiredOnCreate: true,
             canEdit: false,
@@ -205,6 +217,8 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.ConfirmPassword,
             isSelectable: false,
+            isFilterable: false,
+            isSearchable: false,
             isSortable: false,
             isRequiredOnCreate: true,
             canEdit: false,
@@ -219,6 +233,8 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.Bio,
             isSelectable: true,
+            isFilterable: false,
+            isSearchable: false,
             isSortable: false,
             isRequiredOnCreate: false,
             canEdit: true,
@@ -233,6 +249,8 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.ProfilePicture,
             isSelectable: true,
+            isFilterable: false,
+            isSearchable: false,
             isSortable: false,
             isRequiredOnCreate: false,
             canEdit: true,
@@ -249,6 +267,8 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.PostCount,
             isSelectable: true,
+            isFilterable: true,
+            isSearchable: false,
             isSortable: true,
             isRequiredOnCreate: false,
             canEdit: false,
@@ -257,6 +277,8 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.FollowerCount,
             isSelectable: true,
+            isFilterable: true,
+            isSearchable: false,
             isSortable: true,
             isRequiredOnCreate: false,
             canEdit: false,
@@ -265,6 +287,8 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.FollowingCount,
             isSelectable: true,
+            isFilterable: true,
+            isSearchable: false,
             isSortable: true,
             isRequiredOnCreate: false,
             canEdit: false,
@@ -273,6 +297,8 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.IsDeleted,
             isSelectable: true,
+            isFilterable: true,
+            isSearchable: false,
             isSortable: false,
             isRequiredOnCreate: false,
             canEdit: false,
@@ -281,6 +307,8 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.IsBanned,
             isSelectable: true,
+            isFilterable: true,
+            isSearchable: false,
             isSortable: false,
             isRequiredOnCreate: false,
             canEdit: false,
@@ -289,6 +317,8 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.CreatedDate,
             isSelectable: true,
+            isFilterable: true,
+            isSearchable: false,
             isSortable: true,
             isRequiredOnCreate: false,
             canEdit: false,
@@ -297,6 +327,8 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.LastUpdated,
             isSelectable: true,
+            isFilterable: true,
+            isSearchable: false,
             isSortable: true,
             isRequiredOnCreate: false,
             canEdit: false,
@@ -305,6 +337,8 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.LastLoginDate,
             isSelectable: true,
+            isFilterable: true,
+            isSearchable: false,
             isSortable: true,
             isRequiredOnCreate: false,
             canEdit: false,
@@ -510,6 +544,65 @@ class UserService extends BaseService {
         const options = extend(true, defaultOptions, queryOptions);
 
         return super.getList(this.table, this.pk, this.tableColumns, options);
+    }
+
+    /**
+     * Fetches a list of user records by search term
+     *
+     * @param searchTerm Search term to query users by
+     * @param searchColumns Columns to search by
+     */
+    searchUser(
+        searchTerm: string,
+        searchColumns: IUserColumnKeys[] = [IUserColumnKeys.Username]
+    ): Promise<IUserRecord[]> {
+        if (!Array.isArray(searchColumns)) {
+            return Promise.reject({
+                statusCode: 400,
+                message: "Bad Request",
+                details: ["Parameter Error: Search columns must be an array"]
+            });
+        }
+
+        const selectableColumns: string[] = this.tableColumns
+            .filter((column) => column.isSelectable)
+            .map((column) => column.key);
+        const validSearchColumns = this.tableColumns.filter((column) => column.isSearchable);
+        const validWhereClauses = [];
+
+        let query = this.dbConnection(this.table)
+            .select(selectableColumns)
+            .where({ isDeleted: false, isBanned: false })
+            .limit(20)
+            .orderBy(IUserColumnKeys.FollowerCount);
+
+        for (let i = 0; i < searchColumns.length; i++) {
+            let validColumn = validSearchColumns.find(
+                (validColumn) => validColumn.key === searchColumns[i]
+            );
+
+            if (!validColumn) {
+                return Promise.reject({
+                    statusCode: 400,
+                    message: "Bad Request",
+                    details: [`You cannot search on column: ${searchColumns[i]}`]
+                });
+            } else {
+                validWhereClauses.push({
+                    column: validColumn.key,
+                    operator: "like",
+                    value: `%${searchTerm}%`
+                });
+            }
+        }
+
+        validWhereClauses.forEach((clause, index) => {
+            index === 0
+                ? query.where(clause.column, clause.operator, clause.value)
+                : query.orWhere(clause.column, clause.operator, clause.value);
+        });
+
+        return query;
     }
 
     /**

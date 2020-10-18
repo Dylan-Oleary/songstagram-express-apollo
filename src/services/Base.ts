@@ -6,6 +6,8 @@ import { IFormSubmission } from "../lib/validateSubmission";
 export interface IColumnDefinition {
     key: string;
     isSelectable: boolean;
+    isFilterable: boolean;
+    isSearchable: boolean;
     isSortable: boolean;
     isRequiredOnCreate: boolean;
     canEdit: boolean;
@@ -132,7 +134,7 @@ class BaseService {
      * @param columns A list of column definitions for the table
      * @param queryOptions Additional filters to query by
      */
-    protected async getList(
+    protected getList(
         tableName: string,
         pk: string,
         columns: IColumnDefinition[],
