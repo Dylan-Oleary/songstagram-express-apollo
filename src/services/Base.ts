@@ -1,18 +1,37 @@
 import extend from "extend";
-import knex from "knex";
+import knex, { QueryBuilder } from "knex";
 
 import { IFormSubmission } from "../lib/validateSubmission";
 
 export interface IColumnDefinition {
     key: string;
     isSelectable: boolean;
-    isFilterable: boolean;
     isSearchable: boolean;
     isSortable: boolean;
     isRequiredOnCreate: boolean;
     canEdit: boolean;
     label: string;
+    filterOptions?: IColumnFilterOptions;
     check?: (value: string, submission?: IFormSubmission) => undefined | Error;
+}
+
+export interface IColumnFilterOptions {
+    validConditions: FilterCondition[];
+}
+
+export interface IWhereClause {
+    [key: string]: {
+        condition?: FilterCondition;
+        value: string | number | boolean;
+    };
+}
+
+export enum FilterCondition {
+    Equal = "eq",
+    LessThan = "lt",
+    LessThanOrEqual = "lte",
+    GreaterThan = "gt",
+    GreaterThanOrEqual = "gte"
 }
 
 export enum OrderDirection {
@@ -21,9 +40,7 @@ export enum OrderDirection {
 }
 
 export interface IListQueryOptions {
-    where?: {
-        [key: string]: any;
-    };
+    where?: IWhereClause;
     itemsPerPage?: number;
     pageNo?: number;
     orderBy?: IOrderBy;
@@ -86,6 +103,118 @@ class BaseService {
             totalPages,
             totalRecords
         };
+    }
+
+    /**
+     * Adds where clauses to the knex query based upon provided query options
+     *
+     * @param query An instance of the knex `QueryBuilder`
+     * @param where Query options to be added to knex query
+     */
+    private buildWhereClause(query: QueryBuilder, where: IWhereClause) {
+        const whereKeys = Object.keys(where) || [];
+        const whereClauses: {
+            column: string;
+            operator: string;
+            value: number | string | boolean;
+        }[] = [];
+
+        whereKeys.forEach((key) => {
+            let filterOption = { ...where[key] };
+            let filterCondition = filterOption.condition || FilterCondition.Equal;
+            let knexFilterCondition: string;
+
+            switch (filterCondition) {
+                case FilterCondition.Equal:
+                    knexFilterCondition = "=";
+                    break;
+                case FilterCondition.GreaterThan:
+                    knexFilterCondition = ">";
+                    break;
+                case FilterCondition.GreaterThanOrEqual:
+                    knexFilterCondition = ">=";
+                    break;
+                case FilterCondition.LessThan:
+                    knexFilterCondition = "<";
+                    break;
+                case FilterCondition.LessThanOrEqual:
+                    knexFilterCondition = "<=";
+                    break;
+                default:
+                    knexFilterCondition = "=";
+                    break;
+            }
+
+            whereClauses.push({
+                column: key,
+                operator: knexFilterCondition,
+                value: filterOption.value
+            });
+        });
+
+        whereClauses.forEach((clause, index) => {
+            index === 0
+                ? query.where(clause.column, clause.operator, clause.value)
+                : query.andWhere(clause.column, clause.operator, clause.value);
+        });
+
+        return query;
+    }
+
+    /**
+     * Validates that a where clause is valid before making a filterable query to the database
+     *
+     * @param tableColumns The table column definitions
+     * @param where Query options to validate based upon column definitions
+     */
+    private validateWhereClause(tableColumns: IColumnDefinition[], where: IWhereClause) {
+        return new Promise((resolve, reject) => {
+            if (Object.keys(where).length > 0) {
+                const filterableColumns = tableColumns.filter((column) => column.filterOptions);
+
+                for (let columnKey of Object.keys(where)) {
+                    const validColumn = filterableColumns.find(
+                        (column) => column.key === columnKey
+                    );
+
+                    if (!validColumn) {
+                        return reject({
+                            statusCode: 400,
+                            message: "Bad Request",
+                            details: [`You cannot filter by column: ${columnKey}`]
+                        });
+                    }
+
+                    if (where[columnKey].condition) {
+                        if (
+                            //@ts-ignore
+                            Object.values(FilterCondition).indexOf(where[columnKey].condition) ===
+                            -1
+                        ) {
+                            return reject({
+                                statusCode: 400,
+                                message: "Bad Request",
+                                details: [
+                                    `You cannot filter column ${columnKey} on condition: ${where[columnKey].condition}`
+                                ]
+                            });
+                        }
+                    }
+
+                    if (where[columnKey].value === undefined || where[columnKey].value === null) {
+                        return reject({
+                            statusCode: 400,
+                            message: "Bad Request",
+                            details: [
+                                `You must pass a valid value to filter on column: ${columnKey}`
+                            ]
+                        });
+                    }
+                }
+            }
+
+            resolve();
+        });
     }
 
     /**
@@ -154,12 +283,15 @@ class BaseService {
         };
         const options = extend(true, defaultOptions, queryOptions);
 
-        return Promise.all([this.validateOrderBy(columns, options.orderBy)])
+        return Promise.all([
+            this.validateOrderBy(columns, options.orderBy),
+            this.validateWhereClause(columns, options.where)
+        ])
             .then(() => {
                 return Promise.all([
                     this.dbConnection(tableName)
                         .select(selectableColumns)
-                        .where(options.where)
+                        .where((query) => this.buildWhereClause(query, options.where))
                         .offset((options.pageNo - 1) * options.itemsPerPage)
                         .limit(options.itemsPerPage)
                         .orderBy(options.orderBy.column, options.orderBy.direction),
@@ -193,14 +325,10 @@ class BaseService {
      * @param pk The primary key for the table
      * @param where Additional filters to query by
      */
-    protected getCount(
-        tableName: string,
-        pk: string,
-        where: { [key: string]: any }
-    ): Promise<number> {
+    protected getCount(tableName: string, pk: string, where: IWhereClause): Promise<number> {
         return this.dbConnection(tableName)
             .count(pk)
-            .where(where)
+            .where((query) => this.buildWhereClause(query, where))
             .then(([count]) => {
                 return Number(count[Object.keys(count)[0]]);
             });

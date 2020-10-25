@@ -2,7 +2,13 @@ import bcrypt from "bcrypt";
 import extend from "extend";
 import knex from "knex";
 
-import { BaseService, IColumnDefinition, IGetListRecord, IListQueryOptions } from "./Base";
+import {
+    BaseService,
+    FilterCondition,
+    IColumnDefinition,
+    IGetListRecord,
+    IListQueryOptions
+} from "./Base";
 import { IFormValidation, validateSubmission } from "../lib/validateSubmission";
 
 export interface IUserRecord {
@@ -114,9 +120,17 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.UserNo,
             isSelectable: true,
-            isFilterable: true,
             isSearchable: false,
             isSortable: true,
+            filterOptions: {
+                validConditions: [
+                    FilterCondition.Equal,
+                    FilterCondition.GreaterThan,
+                    FilterCondition.GreaterThanOrEqual,
+                    FilterCondition.LessThan,
+                    FilterCondition.LessThanOrEqual
+                ]
+            },
             isRequiredOnCreate: false,
             canEdit: false,
             label: IUserColumnLabels.UserNo
@@ -124,7 +138,6 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.FirstName,
             isSelectable: true,
-            isFilterable: true,
             isSearchable: true,
             isSortable: true,
             isRequiredOnCreate: true,
@@ -142,7 +155,6 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.LastName,
             isSelectable: true,
-            isFilterable: true,
             isSearchable: false,
             isSortable: true,
             isRequiredOnCreate: true,
@@ -160,7 +172,6 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.Username,
             isSelectable: true,
-            isFilterable: true,
             isSearchable: true,
             isSortable: true,
             isRequiredOnCreate: true,
@@ -180,7 +191,6 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.Email,
             isSelectable: true,
-            isFilterable: true,
             isSearchable: false,
             isSortable: true,
             isRequiredOnCreate: true,
@@ -200,7 +210,6 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.Password,
             isSelectable: false,
-            isFilterable: false,
             isSearchable: false,
             isSortable: false,
             isRequiredOnCreate: true,
@@ -217,7 +226,6 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.ConfirmPassword,
             isSelectable: false,
-            isFilterable: false,
             isSearchable: false,
             isSortable: false,
             isRequiredOnCreate: true,
@@ -233,7 +241,6 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.Bio,
             isSelectable: true,
-            isFilterable: false,
             isSearchable: false,
             isSortable: false,
             isRequiredOnCreate: false,
@@ -249,7 +256,6 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.ProfilePicture,
             isSelectable: true,
-            isFilterable: false,
             isSearchable: false,
             isSortable: false,
             isRequiredOnCreate: false,
@@ -267,7 +273,6 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.PostCount,
             isSelectable: true,
-            isFilterable: true,
             isSearchable: false,
             isSortable: true,
             isRequiredOnCreate: false,
@@ -277,7 +282,6 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.FollowerCount,
             isSelectable: true,
-            isFilterable: true,
             isSearchable: false,
             isSortable: true,
             isRequiredOnCreate: false,
@@ -287,7 +291,6 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.FollowingCount,
             isSelectable: true,
-            isFilterable: true,
             isSearchable: false,
             isSortable: true,
             isRequiredOnCreate: false,
@@ -297,9 +300,11 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.IsDeleted,
             isSelectable: true,
-            isFilterable: true,
             isSearchable: false,
             isSortable: false,
+            filterOptions: {
+                validConditions: [FilterCondition.Equal]
+            },
             isRequiredOnCreate: false,
             canEdit: false,
             label: IUserColumnLabels.IsDeleted
@@ -307,9 +312,11 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.IsBanned,
             isSelectable: true,
-            isFilterable: true,
             isSearchable: false,
             isSortable: false,
+            filterOptions: {
+                validConditions: [FilterCondition.Equal]
+            },
             isRequiredOnCreate: false,
             canEdit: false,
             label: IUserColumnLabels.IsBanned
@@ -317,7 +324,6 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.CreatedDate,
             isSelectable: true,
-            isFilterable: true,
             isSearchable: false,
             isSortable: true,
             isRequiredOnCreate: false,
@@ -327,7 +333,6 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.LastUpdated,
             isSelectable: true,
-            isFilterable: true,
             isSearchable: false,
             isSortable: true,
             isRequiredOnCreate: false,
@@ -337,7 +342,6 @@ class UserService extends BaseService {
         {
             key: IUserColumnKeys.LastLoginDate,
             isSelectable: true,
-            isFilterable: true,
             isSearchable: false,
             isSortable: true,
             isRequiredOnCreate: false,
@@ -531,8 +535,12 @@ class UserService extends BaseService {
     getUserList(queryOptions: IListQueryOptions = {}): Promise<IUserList> {
         const defaultOptions = {
             where: {
-                isDeleted: false,
-                isBanned: false
+                isDeleted: {
+                    value: 0
+                },
+                isBanned: {
+                    value: 0
+                }
             },
             itemsPerPage: 10,
             pageNo: 1,
