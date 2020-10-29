@@ -39,8 +39,8 @@ describe("Base Service", () => {
         };
 
         test("successfully returns a list of records", () => {
-            return baseService.getList(tableName, pk, tableColumns, options).then(({ data }) => {
-                data.forEach((record) => {
+            return baseService.getList(tableName, pk, tableColumns, options).then((recordSet) => {
+                recordSet.forEach((record) => {
                     expect.objectContaining({
                         [pk]: record[pk]
                     });
@@ -53,8 +53,8 @@ describe("Base Service", () => {
 
             return baseService
                 .getList(tableName, pk, tableColumns, { ...options, itemsPerPage })
-                .then(({ data }) => {
-                    expect(data.length).toEqual(itemsPerPage);
+                .then((recordSet) => {
+                    expect(recordSet.length).toEqual(itemsPerPage);
                 });
         });
 
@@ -64,8 +64,8 @@ describe("Base Service", () => {
 
             return baseService
                 .getList(tableName, pk, tableColumns, { ...options, itemsPerPage, pageNo })
-                .then(({ data }) => {
-                    expect(data.length).toEqual(1);
+                .then((recordSet) => {
+                    expect(recordSet.length).toEqual(1);
                     expect.arrayContaining([expect.objectContaining({ [pk]: pageNo })]);
                 });
         });
@@ -76,13 +76,13 @@ describe("Base Service", () => {
                     ...options,
                     orderBy: { ...options.orderBy, direction: OrderDirection.ASC }
                 })
-                .then(({ data }) => {
+                .then((recordSet) => {
                     let expectedKey = 1;
 
-                    data.forEach((record, index) => {
-                        if (index > 0 && index < data.length - 1) {
+                    recordSet.forEach((record, index) => {
+                        if (index > 0 && index < recordSet.length - 1) {
                             expect(record[pk]).toEqual(expectedKey);
-                            expect(record[pk]).toBeLessThan(data[index + 1][pk]);
+                            expect(record[pk]).toBeLessThan(recordSet[index + 1][pk]);
                         } else {
                             expect(record[pk]).toEqual(expectedKey);
                         }
@@ -98,13 +98,13 @@ describe("Base Service", () => {
                     ...options,
                     orderBy: { ...options.orderBy, direction: OrderDirection.DESC }
                 })
-                .then(({ data }) => {
-                    let expectedKey = data.length;
+                .then((recordSet) => {
+                    let expectedKey = recordSet.length;
 
-                    data.forEach((record, index) => {
-                        if (index > 0 && index < data.length - 1) {
+                    recordSet.forEach((record, index) => {
+                        if (index > 0 && index < recordSet.length - 1) {
                             expect(record[pk]).toEqual(expectedKey);
-                            expect(record[pk]).toBeGreaterThan(data[index + 1][pk]);
+                            expect(record[pk]).toBeGreaterThan(recordSet[index + 1][pk]);
                         } else {
                             expect(record[pk]).toEqual(expectedKey);
                         }
@@ -207,9 +207,9 @@ describe("Base Service", () => {
                                 }
                             }
                         })
-                        .then(({ data }) => {
-                            expect(data.length).toEqual(1);
-                            expect(data[0][pk]).toEqual(pkValue);
+                        .then((recordSet) => {
+                            expect(recordSet.length).toEqual(1);
+                            expect(recordSet[0][pk]).toEqual(pkValue);
                         });
                 });
 
@@ -226,9 +226,9 @@ describe("Base Service", () => {
                                 }
                             }
                         })
-                        .then(({ data }) => {
-                            expect(data.length).toBeGreaterThan(0);
-                            data.forEach((record) => {
+                        .then((recordSet) => {
+                            expect(recordSet.length).toBeGreaterThan(0);
+                            recordSet.forEach((record) => {
                                 expect(record[pk]).toBeGreaterThanOrEqual(pkValue);
                             });
                         });
@@ -247,9 +247,9 @@ describe("Base Service", () => {
                                 }
                             }
                         })
-                        .then(({ data }) => {
-                            expect(data.length).toBeGreaterThan(0);
-                            data.forEach((record) => {
+                        .then((recordSet) => {
+                            expect(recordSet.length).toBeGreaterThan(0);
+                            recordSet.forEach((record) => {
                                 expect(record[pk]).toBeGreaterThan(pkValue);
                             });
                         });
@@ -268,9 +268,9 @@ describe("Base Service", () => {
                                 }
                             }
                         })
-                        .then(({ data }) => {
-                            expect(data.length).toBeGreaterThan(0);
-                            data.forEach((record) => {
+                        .then((recordSet) => {
+                            expect(recordSet.length).toBeGreaterThan(0);
+                            recordSet.forEach((record) => {
                                 expect(record[pk]).toBeLessThanOrEqual(pkValue);
                             });
                         });
@@ -289,11 +289,29 @@ describe("Base Service", () => {
                                 }
                             }
                         })
-                        .then(({ data }) => {
-                            expect(data.length).toBeGreaterThan(0);
-                            data.forEach((record) => {
+                        .then((recordSet) => {
+                            expect(recordSet.length).toBeGreaterThan(0);
+                            recordSet.forEach((record) => {
                                 expect(record[pk]).toBeLessThan(pkValue);
                             });
+                        });
+                });
+
+                test("successfully returns the correct list of records no condition is passed", () => {
+                    const pkValue = Math.floor(Math.random() * 10) + 1;
+
+                    return baseService
+                        .getList(tableName, pk, tableColumns, {
+                            ...options,
+                            where: {
+                                [pk]: {
+                                    value: pkValue
+                                }
+                            }
+                        })
+                        .then((recordSet) => {
+                            expect(recordSet.length).toEqual(1);
+                            expect(recordSet[0][pk]).toEqual(pkValue);
                         });
                 });
             }); // close describe("Build Where Clauses")
@@ -344,102 +362,89 @@ describe("Base Service", () => {
                     });
             });
         }); // close describe("Order By")
+    }); // close describe("getList")
 
-        describe("Pagination", () => {
-            test("successfully returns a pagination object", () => {
-                const queryOptions = { ...options };
+    describe("buildPagination", () => {
+        test("successfully returns a pagination object", () => {
+            const count = 50;
+            const itemsPerPage = Math.floor(Math.random() * 10) + 1;
+            const pageNo = Math.floor(Math.random() * (count / itemsPerPage)) + 1;
+            const pagination = baseService.buildPagination(count, pageNo, itemsPerPage);
 
-                queryOptions.itemsPerPage = 3;
-                queryOptions.pageNo = 2;
-
-                return Promise.all([
-                    baseService.getList(tableName, pk, tableColumns, queryOptions),
-                    baseService.getCount(tableName, pk, queryOptions.where)
-                ]).then(([recordSet, count]) => {
-                    expect(recordSet).toHaveProperty("pagination");
-                    expect(recordSet.pagination).toEqual({
-                        currentPage: queryOptions.pageNo,
-                        itemsPerPage: queryOptions.itemsPerPage,
-                        nextPage: queryOptions.pageNo === 1 ? null : queryOptions.pageNo + 1,
-                        prevPage: queryOptions.pageNo === 1 ? null : queryOptions.pageNo - 1,
-                        totalPages: Math.ceil(count / queryOptions.itemsPerPage),
-                        totalRecords: count
-                    });
-                });
-            });
-
-            test("successfully returns the correct pagination object if no records are found", () => {
-                const queryOptions = { ...options };
-
-                queryOptions.where = {
-                    [pk]: {
-                        value: 99999
-                    }
-                };
-
-                return baseService
-                    .getList(tableName, pk, tableColumns, queryOptions)
-                    .then((recordSet) => {
-                        expect(recordSet).toHaveProperty("pagination");
-                        expect(recordSet.pagination).toEqual({
-                            currentPage: 1,
-                            itemsPerPage: queryOptions.itemsPerPage,
-                            nextPage: null,
-                            prevPage: null,
-                            totalPages: 0,
-                            totalRecords: 0
-                        });
-                    });
-            });
-
-            test("successfully returns the correct pagination object if the requested page has no records", () => {
-                const queryOptions = { ...options };
-
-                queryOptions.pageNo = 1000;
-                queryOptions.itemsPerPage = 10000;
-
-                return baseService
-                    .getList(tableName, pk, tableColumns, queryOptions)
-                    .then((recordSet) => {
-                        expect(recordSet.data).toEqual([]);
-                        expect(recordSet).toHaveProperty("pagination");
-                        expect(recordSet.pagination).toEqual({
-                            currentPage: queryOptions.pageNo,
-                            itemsPerPage: queryOptions.itemsPerPage,
-                            nextPage: null,
-                            prevPage: null,
-                            totalPages: 1,
-                            totalRecords: 10
-                        });
-                    });
-            });
-
-            test("successfully returns a 'nextPage' of null if the current page is the last page", () => {
-                const queryOptions = { ...options };
-
-                queryOptions.itemsPerPage = 3;
-                queryOptions.pageNo = 4;
-
-                return baseService
-                    .getList(tableName, pk, tableColumns, queryOptions)
-                    .then((recordSet) => {
-                        expect(recordSet).toHaveProperty("pagination");
-                        expect(recordSet.pagination).toMatchObject({ nextPage: null });
-                    });
-            });
-
-            test("successfully returns a 'prevPage' of null if the current page is the first page", () => {
-                const queryOptions = { ...options };
-
-                return baseService
-                    .getList(tableName, pk, tableColumns, queryOptions)
-                    .then((recordSet) => {
-                        expect(recordSet).toHaveProperty("pagination");
-                        expect(recordSet.pagination).toMatchObject({ prevPage: null });
-                    });
+            expect(pagination).toEqual({
+                currentPage: pageNo,
+                itemsPerPage: itemsPerPage,
+                nextPage: pageNo === Math.ceil(count / itemsPerPage) ? null : pageNo + 1,
+                prevPage: pageNo === 1 ? null : pageNo - 1,
+                totalPages: Math.ceil(count / itemsPerPage),
+                totalRecords: count
             });
         });
-    }); // close describe("getList")
+
+        test("successfully returns the correct pagination object if no records are found", () => {
+            const count = 0;
+            const itemsPerPage = Math.floor(Math.random() * 10) + 1;
+            const pageNo = Math.floor(Math.random() * (count / itemsPerPage)) + 1;
+            const pagination = baseService.buildPagination(count, pageNo, itemsPerPage);
+
+            expect(pagination).toEqual({
+                currentPage: pageNo,
+                itemsPerPage: itemsPerPage,
+                nextPage: null,
+                prevPage: null,
+                totalPages: 0,
+                totalRecords: count
+            });
+        });
+
+        test("successfully returns the correct pagination object if the requested page has no records", () => {
+            const count = 10;
+            const itemsPerPage = 100000;
+            const pageNo = 1000;
+            const pagination = baseService.buildPagination(count, pageNo, itemsPerPage);
+
+            expect(pagination).toEqual({
+                currentPage: pageNo,
+                itemsPerPage: itemsPerPage,
+                nextPage: null,
+                prevPage: null,
+                totalPages: 1,
+                totalRecords: count
+            });
+        });
+
+        test("successfully returns a 'nextPage' of null if the current page is the last page", () => {
+            const count = 100;
+            const itemsPerPage = 10;
+            const pageNo = 10;
+            const pagination = baseService.buildPagination(count, pageNo, itemsPerPage);
+
+            expect(pagination).toEqual({
+                currentPage: pageNo,
+                itemsPerPage: itemsPerPage,
+                nextPage: null,
+                prevPage: 9,
+                totalPages: 10,
+                totalRecords: count
+            });
+        });
+
+        test("successfully returns a 'prevPage' of null if the current page is the first page", () => {
+            const count = 10;
+            const itemsPerPage = 1;
+            const pageNo = 1;
+            const pagination = baseService.buildPagination(count, pageNo, itemsPerPage);
+
+            expect(pagination).toEqual({
+                currentPage: pageNo,
+                itemsPerPage: itemsPerPage,
+                nextPage: pageNo + 1,
+                prevPage: null,
+                totalPages: 10,
+                totalRecords: count
+            });
+        });
+    }); // close describe("buildPagination")
 
     describe("getCount", () => {
         const tableName = "users";
@@ -466,10 +471,20 @@ describe("Base Service", () => {
         test("successfully returns the correct count", () => {
             return Promise.all([
                 baseService.getList(tableName, pk, tableColumns, options),
-                baseService.getCount(tableName, pk, options.where)
-            ]).then(([{ data }, count]) => {
-                expect(data.length).toEqual(count);
+                baseService.getCount(tableName, pk, tableColumns, options.where)
+            ]).then(([recordSet, count]) => {
+                expect(recordSet.length).toEqual(count);
             });
+        });
+
+        test("throws an error when the count could not be retrieved", () => {
+            return baseService
+                .getCount(tableName, "pantomime", tableColumns, options.where)
+                .catch((error) => {
+                    expect(error.statusCode).toEqual(500);
+                    expect(error).toHaveProperty("message");
+                    expect(error).toHaveProperty("details");
+                });
         });
     }); // close describe("getCount")
 }); // close describe("Base Service")

@@ -6,8 +6,8 @@ import {
     BaseService,
     FilterCondition,
     IColumnDefinition,
-    IGetListRecord,
-    IListQueryOptions
+    IListQueryOptions,
+    IPagination
 } from "./Base";
 import { IFormValidation, validateSubmission } from "../lib/validateSubmission";
 
@@ -30,8 +30,9 @@ export interface IUserRecord {
     password?: string;
 }
 
-export interface IUserList extends IGetListRecord {
+export interface IUserListRecord {
     data: IUserRecord[];
+    pagination: IPagination;
 }
 
 export interface ICreateUserValues {
@@ -140,6 +141,9 @@ class UserService extends BaseService {
             isSelectable: true,
             isSearchable: true,
             isSortable: true,
+            filterOptions: {
+                validConditions: [FilterCondition.Equal]
+            },
             isRequiredOnCreate: true,
             canEdit: true,
             label: IUserColumnLabels.FirstName,
@@ -157,6 +161,9 @@ class UserService extends BaseService {
             isSelectable: true,
             isSearchable: false,
             isSortable: true,
+            filterOptions: {
+                validConditions: [FilterCondition.Equal]
+            },
             isRequiredOnCreate: true,
             canEdit: true,
             label: IUserColumnLabels.LastName,
@@ -174,6 +181,9 @@ class UserService extends BaseService {
             isSelectable: true,
             isSearchable: true,
             isSortable: true,
+            filterOptions: {
+                validConditions: [FilterCondition.Equal]
+            },
             isRequiredOnCreate: true,
             canEdit: true,
             label: IUserColumnLabels.Username,
@@ -193,6 +203,9 @@ class UserService extends BaseService {
             isSelectable: true,
             isSearchable: false,
             isSortable: true,
+            filterOptions: {
+                validConditions: [FilterCondition.Equal]
+            },
             isRequiredOnCreate: true,
             canEdit: true,
             label: IUserColumnLabels.Email,
@@ -275,6 +288,15 @@ class UserService extends BaseService {
             isSelectable: true,
             isSearchable: false,
             isSortable: true,
+            filterOptions: {
+                validConditions: [
+                    FilterCondition.Equal,
+                    FilterCondition.GreaterThan,
+                    FilterCondition.GreaterThanOrEqual,
+                    FilterCondition.LessThan,
+                    FilterCondition.LessThanOrEqual
+                ]
+            },
             isRequiredOnCreate: false,
             canEdit: false,
             label: IUserColumnLabels.PostCount
@@ -284,6 +306,15 @@ class UserService extends BaseService {
             isSelectable: true,
             isSearchable: false,
             isSortable: true,
+            filterOptions: {
+                validConditions: [
+                    FilterCondition.Equal,
+                    FilterCondition.GreaterThan,
+                    FilterCondition.GreaterThanOrEqual,
+                    FilterCondition.LessThan,
+                    FilterCondition.LessThanOrEqual
+                ]
+            },
             isRequiredOnCreate: false,
             canEdit: false,
             label: IUserColumnLabels.FollowerCount
@@ -293,6 +324,15 @@ class UserService extends BaseService {
             isSelectable: true,
             isSearchable: false,
             isSortable: true,
+            filterOptions: {
+                validConditions: [
+                    FilterCondition.Equal,
+                    FilterCondition.GreaterThan,
+                    FilterCondition.GreaterThanOrEqual,
+                    FilterCondition.LessThan,
+                    FilterCondition.LessThanOrEqual
+                ]
+            },
             isRequiredOnCreate: false,
             canEdit: false,
             label: IUserColumnLabels.FollowingCount
@@ -532,7 +572,7 @@ class UserService extends BaseService {
      *
      * @param queryOptions Additional filters to query by
      */
-    getUserList(queryOptions: IListQueryOptions = {}): Promise<IUserList> {
+    getUserList(queryOptions: IListQueryOptions = {}): Promise<IUserListRecord> {
         const defaultOptions = {
             where: {
                 isDeleted: {
@@ -551,7 +591,29 @@ class UserService extends BaseService {
         };
         const options = extend(true, defaultOptions, queryOptions);
 
-        return super.getList(this.table, this.pk, this.tableColumns, options);
+        return Promise.all([
+            super.getList(this.table, this.pk, this.tableColumns, options),
+            super.getCount(this.table, this.pk, this.tableColumns, options.where)
+        ])
+            .then(([recordSet, count]) => {
+                const pagination = super.buildPagination(
+                    count,
+                    options.pageNo,
+                    options.itemsPerPage
+                );
+
+                return {
+                    data: recordSet || [],
+                    pagination
+                };
+            })
+            .catch((error) => {
+                return Promise.reject({
+                    statusCode: error.statusCode || 500,
+                    message: error.message || "Internal Server Error",
+                    details: error.details || []
+                });
+            });
     }
 
     /**
@@ -562,7 +624,8 @@ class UserService extends BaseService {
      */
     searchUser(
         searchTerm: string,
-        searchColumns: IUserColumnKeys[] = [IUserColumnKeys.Username]
+        searchColumns: IUserColumnKeys[] = [IUserColumnKeys.Username],
+        queryOptions: IListQueryOptions = {}
     ): Promise<IUserRecord[]> {
         if (!Array.isArray(searchColumns)) {
             return Promise.reject({
@@ -572,6 +635,23 @@ class UserService extends BaseService {
             });
         }
 
+        const defaultOptions = {
+            where: {
+                isDeleted: {
+                    value: 0
+                },
+                isBanned: {
+                    value: 0
+                }
+            },
+            itemsPerPage: 10,
+            pageNo: 1,
+            orderBy: {
+                direction: "desc",
+                column: this.pk
+            }
+        };
+        const options = extend(true, defaultOptions, queryOptions);
         const selectableColumns: string[] = this.tableColumns
             .filter((column) => column.isSelectable)
             .map((column) => column.key);
@@ -580,9 +660,10 @@ class UserService extends BaseService {
 
         let query = this.dbConnection(this.table)
             .select(selectableColumns)
-            .where({ isDeleted: false, isBanned: false })
-            .limit(20)
-            .orderBy(IUserColumnKeys.FollowerCount);
+            .where((query) => super.buildWhereClause(query, options.where))
+            .offset((options.pageNo - 1) * options.itemsPerPage)
+            .limit(options.itemsPerPage)
+            .orderBy(options.orderBy.column, options.orderBy.direction);
 
         for (let i = 0; i < searchColumns.length; i++) {
             let validColumn = validSearchColumns.find(
@@ -610,7 +691,20 @@ class UserService extends BaseService {
                 : query.orWhere(clause.column, clause.operator, clause.value);
         });
 
-        return query;
+        return Promise.all([
+            super.validateOrderBy(this.tableColumns, options.orderBy),
+            super.validateWhereClause(this.tableColumns, options.where)
+        ])
+            .then(() => {
+                return query;
+            })
+            .catch((error) => {
+                return Promise.reject({
+                    statusCode: error.statusCode || 500,
+                    message: error.message || "Internal Server Error",
+                    details: error.details || []
+                });
+            });
     }
 
     /**

@@ -637,10 +637,10 @@ describe("User Service", () => {
 
     describe("getUserList", () => {
         test("returns a list of users", () => {
-            return userService.getUserList().then((userList) => {
-                expect(userList.data.length).toEqual(10);
+            return userService.getUserList().then(({ data }) => {
+                expect(data.length).toEqual(10);
 
-                userList.data.forEach((user) => {
+                data.forEach((user) => {
                     userRecordKeys.forEach((key) => {
                         expect(user).toHaveProperty(key);
                     });
@@ -648,15 +648,22 @@ describe("User Service", () => {
             });
         });
 
-        test("successfully return the correct amount of items when itemsPerPage is passed", () => {
-            return userService.getUserList({ itemsPerPage: 3 }).then((userList) => {
-                expect(userList.data.length).toEqual(3);
+        test("returns a pagination object", () => {
+            return userService.getUserList().then((response) => {
+                expect(response).toHaveProperty("pagination");
+            });
+        });
 
-                userList.data.forEach((user) => {
+        test("successfully return the correct amount of items when itemsPerPage is passed", () => {
+            return userService.getUserList({ itemsPerPage: 3 }).then(({ data, pagination }) => {
+                expect(data.length).toEqual(3);
+
+                data.forEach((user) => {
                     userRecordKeys.forEach((key) => {
                         expect(user).toHaveProperty(key);
                     });
                 });
+                expect(pagination).toHaveProperty("itemsPerPage", 3);
             });
         });
 
@@ -668,8 +675,8 @@ describe("User Service", () => {
                 .filter((column) => !column.isSelectable)
                 .map((column) => column.key);
 
-            return userService.getUserList().then((userList) => {
-                userList.data.forEach((user) => {
+            return userService.getUserList().then(({ data }) => {
+                data.forEach((user) => {
                     selectableColumns.forEach((column) => {
                         expect(user).toHaveProperty(column);
                     });
