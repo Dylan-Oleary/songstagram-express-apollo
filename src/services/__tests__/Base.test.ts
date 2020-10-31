@@ -297,7 +297,7 @@ describe("Base Service", () => {
                         });
                 });
 
-                test("successfully returns the correct list of records no condition is passed", () => {
+                test("successfully returns the correct list of records when no condition is passed", () => {
                     const pkValue = Math.floor(Math.random() * 10) + 1;
 
                     return baseService

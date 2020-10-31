@@ -116,7 +116,7 @@ class BaseService {
 
         whereKeys.forEach((key) => {
             let filterOption = { ...where[key] };
-            let filterCondition = filterOption.condition || FilterCondition.Equal;
+            let filterCondition = filterOption.condition;
             let knexFilterCondition: string;
 
             switch (filterCondition) {

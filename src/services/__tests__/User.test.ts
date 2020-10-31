@@ -958,7 +958,6 @@ describe("User Service", () => {
             };
 
             return userService.updateUser(userTwo.userNo, invalidSubmission).catch((error) => {
-                console.log(error);
                 expect(error.statusCode).toEqual(409);
                 expect(error.message).toEqual("Conflict Error");
                 expect(error.details).toEqual(
