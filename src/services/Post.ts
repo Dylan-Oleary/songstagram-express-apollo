@@ -228,12 +228,13 @@ class PostService extends BaseService {
 
         const user = await new UserService(this.dbConnection).getUser(submission.userNo || 0);
 
-        if (user.isDeleted || user.isBanned)
+        if (Boolean(user.isDeleted) || Boolean(user.isBanned)) {
             return Promise.reject({
                 statusCode: 403,
                 message: "Forbidden",
-                details: ["User does not have access to create a post"]
+                details: [`User (userNo: ${user.userNo}) does not have access to create a post`]
             });
+        }
 
         const newPost: ICreatePostValues = {
             userNo: user.userNo,
@@ -259,7 +260,7 @@ class PostService extends BaseService {
      * @param postNo The post number used to look for the correct post
      */
     getPost(postNo: number): Promise<IPostRecord> {
-        return this.validatePostNo(postNo).then(() => {
+        return super.validateRecordNo(postNo, this.pk).then(() => {
             return this.dbConnection(this.table)
                 .first("*")
                 .where(this.pk, postNo)
@@ -273,25 +274,6 @@ class PostService extends BaseService {
 
                     return record;
                 });
-        });
-    }
-
-    /**
-     * Validates that a post number is valid
-     *
-     * @param postNo A post number to validate
-     */
-    private validatePostNo(postNo: number): Promise<Error | void> {
-        return new Promise((resolve, reject) => {
-            if (!postNo || typeof postNo !== "number") {
-                return reject({
-                    statusCode: 400,
-                    message: "Bad Request",
-                    details: ["Parameter Error: postNo must be a number"]
-                });
-            } else {
-                return resolve();
-            }
         });
     }
 }

@@ -1030,6 +1030,36 @@ describe("User Service", () => {
         });
     }); // close describe("deleteUser")
 
+    describe("banUser", () => {
+        let newUser;
+        let submission = buildValidSubmission("steely_dan_the_man");
+
+        beforeAll(async (done) => {
+            newUser = await userService.createUser(submission);
+            done();
+        });
+
+        test("successfully bans a user", () => {
+            return userService.banUser(newUser.userNo).then((response) => {
+                return userService.getUser(newUser.userNo).then((userRecord) => {
+                    expect(response).toEqual(true);
+                    expect(userRecord.userNo).toEqual(newUser.userNo);
+                    expect(userRecord.isBanned).toEqual(1);
+                });
+            });
+        });
+
+        test("throws a not found error (404) if no user is found", () => {
+            return userService.banUser(900).catch((error) => {
+                expect(error.statusCode).toEqual(404);
+                expect(error.message).toEqual("Not Found");
+                expect(error.details).toEqual(
+                    expect.arrayContaining(["User with a userNo of 900 could not be found"])
+                );
+            });
+        });
+    }); // close describe("banUser")
+
     describe("updatePassword", () => {
         let user: IUserRecord;
         let submission = buildValidSubmission("thedirtynil");
@@ -1094,42 +1124,4 @@ describe("User Service", () => {
             });
         });
     }); // close describe("updatePassword")
-
-    describe("validateUserNo", () => {
-        test("successfully resolves if userNo is valid", () => {
-            return userService.validateUserNo(1).then((response) => {
-                expect(response).toBe(undefined);
-            });
-        });
-
-        test("throws a bad request error (400) if userNo is undefined", () => {
-            return userService.validateUserNo(undefined).catch((error) => {
-                expect(error.statusCode).toEqual(400);
-                expect(error.message).toEqual("Bad Request");
-                expect(error.details).toEqual(
-                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
-                );
-            });
-        });
-
-        test("throws a bad request error (400) if userNo is null", () => {
-            return userService.validateUserNo(null).catch((error) => {
-                expect(error.statusCode).toEqual(400);
-                expect(error.message).toEqual("Bad Request");
-                expect(error.details).toEqual(
-                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
-                );
-            });
-        });
-
-        test("throws a bad request error (400) if userNo is a string", () => {
-            return userService.validateUserNo("thebiglebowski").catch((error) => {
-                expect(error.statusCode).toEqual(400);
-                expect(error.message).toEqual("Bad Request");
-                expect(error.details).toEqual(
-                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
-                );
-            });
-        });
-    }); // close describe("validateUserNo")
 }); // close describe("User Service")

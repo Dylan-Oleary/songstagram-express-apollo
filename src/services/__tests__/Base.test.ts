@@ -487,4 +487,42 @@ describe("Base Service", () => {
                 });
         });
     }); // close describe("getCount")
+
+    describe("validateRecordNo", () => {
+        test("successfully resolves if recordNo is valid", () => {
+            return baseService.validateRecordNo(1, "userNo").then((response) => {
+                expect(response).toBe(undefined);
+            });
+        });
+
+        test("throws a bad request error (400) if recordNo is undefined", () => {
+            return baseService.validateRecordNo(undefined, "userNo").catch((error) => {
+                expect(error.statusCode).toEqual(400);
+                expect(error.message).toEqual("Bad Request");
+                expect(error.details).toEqual(
+                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
+                );
+            });
+        });
+
+        test("throws a bad request error (400) if recordNo is null", () => {
+            return baseService.validateRecordNo(null, "userNo").catch((error) => {
+                expect(error.statusCode).toEqual(400);
+                expect(error.message).toEqual("Bad Request");
+                expect(error.details).toEqual(
+                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
+                );
+            });
+        });
+
+        test("throws a bad request error (400) if recordNo is a string", () => {
+            return baseService.validateRecordNo("thebiglebowski", "userNo").catch((error) => {
+                expect(error.statusCode).toEqual(400);
+                expect(error.message).toEqual("Bad Request");
+                expect(error.details).toEqual(
+                    expect.arrayContaining(["Parameter Error: userNo must be a number"])
+                );
+            });
+        });
+    }); // close describe("validateRecordNo")
 }); // close describe("Base Service")

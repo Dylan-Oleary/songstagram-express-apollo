@@ -333,6 +333,25 @@ class BaseService {
                 });
             });
     }
+
+    /**
+     * Checks that a record number is valid
+     *
+     * @param recordNo A record number to validate
+     */
+    protected validateRecordNo(recordNo: number, label: string): Promise<Error | void> {
+        return new Promise((resolve, reject) => {
+            if (!recordNo || typeof recordNo !== "number") {
+                return reject({
+                    statusCode: 400,
+                    message: "Bad Request",
+                    details: [`Parameter Error: ${label} must be a number`]
+                });
+            } else {
+                return resolve();
+            }
+        });
+    }
 }
 
 export default BaseService;

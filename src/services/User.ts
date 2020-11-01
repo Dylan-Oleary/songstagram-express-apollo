@@ -480,7 +480,7 @@ class UserService extends BaseService {
             }
         });
 
-        return this.validateUserNo(userNo).then(() => {
+        return super.validateRecordNo(userNo, this.pk).then(() => {
             return this.dbConnection(this.table)
                 .update(cleanSubmission)
                 .where(this.pk, userNo)
@@ -532,10 +532,26 @@ class UserService extends BaseService {
      * @param userNo The user number used to look for the correct user
      */
     deleteUser(userNo: number): Promise<boolean> {
-        return this.validateUserNo(userNo).then(() => {
+        return super.validateRecordNo(userNo, this.pk).then(() => {
             return this.getUser(userNo).then((userRecord: IUserRecord) => {
                 return this.dbConnection(this.table)
                     .update({ isDeleted: true })
+                    .where(this.pk, userRecord.userNo)
+                    .then(() => true);
+            });
+        });
+    }
+
+    /**
+     * Flags a user as banned in the database
+     *
+     * @param userNo The user number used to look for the correct user
+     */
+    banUser(userNo: number): Promise<boolean> {
+        return super.validateRecordNo(userNo, this.pk).then(() => {
+            return this.getUser(userNo).then((userRecord: IUserRecord) => {
+                return this.dbConnection(this.table)
+                    .update({ isBanned: true })
                     .where(this.pk, userRecord.userNo)
                     .then(() => true);
             });
@@ -548,7 +564,7 @@ class UserService extends BaseService {
      * @param userNo The user number used to look for the correct user
      */
     getUser(userNo: number): Promise<IUserRecord> {
-        return this.validateUserNo(userNo).then(() => {
+        return super.validateRecordNo(userNo, this.pk).then(() => {
             return this.dbConnection(this.table)
                 .first("*")
                 .where(this.pk, userNo)
@@ -724,7 +740,7 @@ class UserService extends BaseService {
             });
         }
 
-        return this.validateUserNo(userNo).then(() => {
+        return super.validateRecordNo(userNo, this.pk).then(() => {
             return this.dbConnection(this.table)
                 .first("*")
                 .where(this.pk, userNo)
@@ -783,25 +799,6 @@ class UserService extends BaseService {
                           details: ["Password does not match hashed password"]
                       });
             });
-        });
-    }
-
-    /**
-     * Validates that a user number is valid
-     *
-     * @param userNo A user number to validate
-     */
-    private validateUserNo(userNo: number): Promise<Error | void> {
-        return new Promise((resolve, reject) => {
-            if (!userNo || typeof userNo !== "number") {
-                return reject({
-                    statusCode: 400,
-                    message: "Bad Request",
-                    details: ["Parameter Error: userNo must be a number"]
-                });
-            } else {
-                return resolve();
-            }
         });
     }
 }
