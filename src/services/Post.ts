@@ -294,7 +294,7 @@ class PostService extends BaseService {
 
         return super.validateRecordNo(postNo, this.pk).then(() => {
             return this.dbConnection(this.table)
-                .update(cleanSubmission)
+                .update({ ...cleanSubmission, lastUpdated: this.dbConnection.fn.now() })
                 .where(this.pk, postNo)
                 .then(() => {
                     return this.getPost(postNo);
@@ -318,7 +318,7 @@ class PostService extends BaseService {
         return super.validateRecordNo(postNo, this.pk).then(() => {
             return this.getPost(postNo).then((postRecord) => {
                 return this.dbConnection(this.table)
-                    .update({ isDeleted: true })
+                    .update({ isDeleted: true, lastUpdated: this.dbConnection.fn.now() })
                     .where(this.pk, postRecord[this.pk])
                     .then(() => true);
             });
