@@ -6,6 +6,7 @@ import {
     ICreatePostValues,
     IPostColumnKeys,
     IPostColumnLabels,
+    IPostListRecord,
     IPostRecord,
     PostService
 } from "../Post";
@@ -34,16 +35,18 @@ describe("Post Service", () => {
 
     beforeAll(async (done) => {
         await dbConnection.migrate.latest();
-        await dbConnection.seed.run({
-            directory: path.join(__dirname, "../../knex/seeds"),
-            loadExtensions: [".ts"],
-            specific: "01_users.ts"
-        });
-        await dbConnection.seed.run({
-            directory: path.join(__dirname, "../../knex/seeds"),
-            loadExtensions: [".ts"],
-            specific: "03_posts.ts"
-        });
+        await Promise.all([
+            dbConnection.seed.run({
+                directory: path.join(__dirname, "../../knex/seeds"),
+                loadExtensions: [".ts"],
+                specific: "01_users.ts"
+            }),
+            dbConnection.seed.run({
+                directory: path.join(__dirname, "../../knex/seeds"),
+                loadExtensions: [".ts"],
+                specific: "03_posts.ts"
+            })
+        ]);
 
         users = await userService.getUserList().then(({ data }) => data);
 
@@ -54,6 +57,170 @@ describe("Post Service", () => {
         await dbConnection.destroy();
         done();
     });
+
+    describe("Column Validation", () => {
+        let user: IUserRecord;
+        let submission: ICreatePostValues;
+
+        beforeAll(() => {
+            user = users[Math.floor(Math.random() * users.length) + 1];
+            submission = buildValidSubmission(user.userNo);
+        });
+
+        describe("Create", () => {
+            describe("User Number", () => {
+                test("throws a validation error (422) if its value is undefined", () => {
+                    const invalidSubmission = {
+                        ...submission,
+                        [IPostColumnKeys.UserNo]: undefined
+                    };
+
+                    //@ts-ignore - Testing column type error
+                    return postService.createPost(invalidSubmission).catch((error) => {
+                        expect(error.statusCode).toEqual(422);
+                        expect(error.message).toEqual("Validation Error");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `${IPostColumnLabels.UserNo} is a required field`
+                            ])
+                        );
+                    });
+                });
+
+                test("throws a validation error (422) if its value is null", () => {
+                    const invalidSubmission = {
+                        ...submission,
+                        [IPostColumnKeys.UserNo]: null
+                    };
+
+                    //@ts-ignore - Testing column type error
+                    return postService.createPost(invalidSubmission).catch((error) => {
+                        expect(error.statusCode).toEqual(422);
+                        expect(error.message).toEqual("Validation Error");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `${IPostColumnLabels.UserNo} is a required field`
+                            ])
+                        );
+                    });
+                });
+
+                test("throws a validation error (422) if its value is empty", () => {
+                    const invalidSubmission = {
+                        ...submission,
+                        [IPostColumnKeys.UserNo]: ""
+                    };
+
+                    //@ts-ignore - Testing column type error
+                    return postService.createPost(invalidSubmission).catch((error) => {
+                        expect(error.statusCode).toEqual(422);
+                        expect(error.message).toEqual("Validation Error");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `${IPostColumnLabels.UserNo} is a required field`
+                            ])
+                        );
+                    });
+                });
+            }); // close describe("User Number")
+
+            describe("Spotify Track ID", () => {
+                test("throws a validation error (422) if its value is undefined", () => {
+                    const invalidSubmission = {
+                        ...submission,
+                        [IPostColumnKeys.SpotifyTrackID]: undefined
+                    };
+
+                    //@ts-ignore - Testing column type error
+                    return postService.createPost(invalidSubmission).catch((error) => {
+                        expect(error.statusCode).toEqual(422);
+                        expect(error.message).toEqual("Validation Error");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `${IPostColumnLabels.SpotifyTrackID} is a required field`
+                            ])
+                        );
+                    });
+                });
+
+                test("throws a validation error (422) if its value is null", () => {
+                    const invalidSubmission = {
+                        ...submission,
+                        [IPostColumnKeys.SpotifyTrackID]: null
+                    };
+
+                    //@ts-ignore - Testing column type error
+                    return postService.createPost(invalidSubmission).catch((error) => {
+                        expect(error.statusCode).toEqual(422);
+                        expect(error.message).toEqual("Validation Error");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `${IPostColumnLabels.SpotifyTrackID} is a required field`
+                            ])
+                        );
+                    });
+                });
+
+                test("throws a validation error (422) if its value is empty", () => {
+                    const invalidSubmission = {
+                        ...submission,
+                        [IPostColumnKeys.SpotifyTrackID]: ""
+                    };
+
+                    //@ts-ignore - Testing column type error
+                    return postService.createPost(invalidSubmission).catch((error) => {
+                        expect(error.statusCode).toEqual(422);
+                        expect(error.message).toEqual("Validation Error");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `${IPostColumnLabels.SpotifyTrackID} is a required field`
+                            ])
+                        );
+                    });
+                });
+            }); // close describe("Spotify Track ID")
+
+            describe("Body", () => {
+                test("throws a validation error (422) if its value is too long", () => {
+                    const invalidSubmission = {
+                        ...submission,
+                        [IPostColumnKeys.Body]: new Array(2560).join("x")
+                    };
+
+                    return postService.createPost(invalidSubmission).catch((error) => {
+                        expect(error.statusCode).toEqual(422);
+                        expect(error.message).toEqual("Validation Error");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `${IPostColumnLabels.Body} cannot be more than 2500 characters`
+                            ])
+                        );
+                    });
+                });
+            }); // close describe("Body")
+        }); // close describe("Create")
+
+        describe("Edit", () => {
+            describe("Body", () => {
+                test("throws a validation error (422) if its value is too long", () => {
+                    const invalidSubmission = {
+                        ...submission,
+                        [IPostColumnKeys.Body]: new Array(2560).join("x")
+                    };
+
+                    return postService.updatePost(1, invalidSubmission).catch((error) => {
+                        expect(error.statusCode).toEqual(422);
+                        expect(error.message).toEqual("Validation Error");
+                        expect(error.details).toEqual(
+                            expect.arrayContaining([
+                                `${IPostColumnLabels.Body} cannot be more than 2500 characters`
+                            ])
+                        );
+                    });
+                });
+            }); // close describe("Body")
+        }); // close describe("Edit")
+    }); // close describe("Column Validation")
 
     describe("createPost", () => {
         let user: IUserRecord;
@@ -154,6 +321,80 @@ describe("Post Service", () => {
         });
     }); // close describe("createPost")
 
+    describe("updatePost", () => {
+        let user: IUserRecord;
+        let submission: ICreatePostValues;
+        let post: IPostRecord;
+
+        beforeAll((done) => {
+            user = users[Math.floor(Math.random() * users.length) + 1];
+            submission = buildValidSubmission(user.userNo);
+
+            return postService.createPost(submission).then((postRecord) => {
+                post = postRecord;
+
+                done();
+            });
+        });
+
+        test("successfully updates a post", () => {
+            const updatedPost = { body: "My first post sucked" };
+
+            return postService.updatePost(post[pk], updatedPost).then((postRecord) => {
+                expect(postRecord).toEqual(
+                    expect.objectContaining({
+                        postNo: post[pk],
+                        ...updatedPost
+                    })
+                );
+            });
+        });
+
+        test("throws a not found error (404) if no post is found", () => {
+            return postService.updatePost(999, { body: "Yeah, right" }).catch((error) => {
+                expect(error.statusCode).toEqual(404);
+                expect(error.message).toEqual("Not Found");
+                expect(error.details).toEqual(
+                    expect.arrayContaining([`Post with a ${pk} of 999 could not be found`])
+                );
+            });
+        });
+    }); // close describe("updatePost")
+
+    describe("deletePost", () => {
+        let user: IUserRecord;
+        let submission: ICreatePostValues;
+        let post: IPostRecord;
+
+        beforeAll(async (done) => {
+            user = users[Math.floor(Math.random() * users.length) + 1];
+            submission = buildValidSubmission(user.userNo);
+            post = await postService.createPost(submission);
+
+            done();
+        });
+
+        test("successfully deletes a post", () => {
+            return postService.deletePost(post[pk]).then((response) => {
+                return postService.getPost(post[pk]).then((postRecord) => {
+                    expect(response).toEqual(true);
+                    expect(postRecord[pk]).toEqual(post[pk]);
+                    expect(postRecord.isDeleted).toEqual(1);
+                });
+            });
+        });
+
+        test("throws a not found error (404) if no post is found", () => {
+            return postService.deletePost(900).catch((error) => {
+                expect(error.statusCode).toEqual(404);
+                expect(error.message).toEqual("Not Found");
+                expect(error.details).toEqual(
+                    expect.arrayContaining([`Post with a ${pk} of 900 could not be found`])
+                );
+            });
+        });
+    }); // close describe("deletePost")
+
     describe("getPost", () => {
         let post: IPostRecord;
         let user: IUserRecord;
@@ -192,4 +433,60 @@ describe("Post Service", () => {
             });
         });
     }); // close describe("getPost")
+
+    describe("getPostList", () => {
+        test("returns a list of posts", () => {
+            return postService.getPostList().then(({ data }) => {
+                expect(data.length).toBeGreaterThan(0);
+
+                data.forEach((post) => {
+                    postRecordKeys.forEach((key) => {
+                        expect(post).toHaveProperty(key);
+                    });
+                });
+            });
+        });
+
+        test("returns a pagination object", () => {
+            return postService.getPostList().then((response) => {
+                expect(response).toHaveProperty("pagination");
+            });
+        });
+
+        test("successfully returns the correct amount of items when itemsPerPage is passed", () => {
+            return postService.getPostList({ itemsPerPage: 2 }).then(({ data, pagination }) => {
+                expect(data.length).toEqual(2);
+
+                data.forEach((post) => {
+                    postRecordKeys.forEach((key) => {
+                        expect(post).toHaveProperty(key);
+                    });
+                });
+                expect(pagination).toHaveProperty("itemsPerPage", 2);
+            });
+        });
+
+        test("successfully returns only selectable columns", () => {
+            //@ts-ignore - Accessing private variable for testing
+            const selectableColumns = postService.tableColumns
+                .filter((column) => column.isSelectable)
+                .map((column) => column.key);
+
+            //@ts-ignore - Accessing private variable for testing
+            const nonselectableColumns = postService.tableColumns
+                .filter((column) => !column.isSelectable)
+                .map((column) => column.key);
+
+            return postService.getPostList().then(({ data }) => {
+                data.forEach((post) => {
+                    selectableColumns.forEach((column) => {
+                        expect(post).toHaveProperty(column);
+                    });
+                    nonselectableColumns.forEach((column) => {
+                        expect(post).not.toHaveProperty(column);
+                    });
+                });
+            });
+        });
+    }); // close describe("getPostList")
 }); // close describe("Post Service")
