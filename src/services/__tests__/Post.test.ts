@@ -63,7 +63,7 @@ describe("Post Service", () => {
         let submission: ICreatePostValues;
 
         beforeAll(() => {
-            user = users[Math.floor(Math.random() * users.length) + 1];
+            user = users[Math.floor(Math.random() * users.length)];
             submission = buildValidSubmission(user.userNo);
         });
 
@@ -226,7 +226,7 @@ describe("Post Service", () => {
         let user: IUserRecord;
 
         beforeAll(() => {
-            user = users[Math.floor(Math.random() * users.length) + 1];
+            user = users[Math.floor(Math.random() * users.length)];
         });
 
         test("successfully creates a post", () => {
@@ -327,7 +327,7 @@ describe("Post Service", () => {
         let post: IPostRecord;
 
         beforeAll((done) => {
-            user = users[Math.floor(Math.random() * users.length) + 1];
+            user = users[Math.floor(Math.random() * users.length)];
             submission = buildValidSubmission(user.userNo);
 
             return postService.createPost(submission).then((postRecord) => {
@@ -367,7 +367,7 @@ describe("Post Service", () => {
         let post: IPostRecord;
 
         beforeAll(async (done) => {
-            user = users[Math.floor(Math.random() * users.length) + 1];
+            user = users[Math.floor(Math.random() * users.length)];
             submission = buildValidSubmission(user.userNo);
             post = await postService.createPost(submission);
 
@@ -489,4 +489,25 @@ describe("Post Service", () => {
             });
         });
     }); // close describe("getPostList")
+
+    describe("getPostCount", () => {
+        test("returns the correct count", () => {
+            const user = users[Math.floor(Math.random() * users.length)];
+            const options = {
+                where: {
+                    userNo: {
+                        value: user.userNo
+                    }
+                }
+            };
+
+            return Promise.all([
+                postService.getPostList(options),
+                postService.getPostCount(options)
+            ]).then(([recordSet, postCount]) => {
+                expect(recordSet.data.length).toEqual(postCount);
+                expect(recordSet.pagination.totalRecords).toEqual(postCount);
+            });
+        });
+    }); // close describe("getPostCount")
 }); // close describe("Post Service")

@@ -393,6 +393,24 @@ class PostService extends BaseService {
                 });
             });
     }
+
+    /**
+     * Returns the number of found posts based on the query options
+     *
+     * @param queryOptions Additional filters to query by
+     */
+    getPostCount(queryOptions: IListQueryOptions = {}): Promise<number> {
+        const defaultOptions = {
+            where: {
+                isDeleted: {
+                    value: 0
+                }
+            }
+        };
+        const options = extend(true, defaultOptions, queryOptions);
+
+        return super.getCount(this.table, this.pk, this.tableColumns, options.where);
+    }
 }
 
 export default PostService;
