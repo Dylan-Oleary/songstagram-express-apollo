@@ -1,9 +1,8 @@
-//@ts-nocheck
 import path from "path";
 
-import { dbConnection } from "../../knex/db";
-import { BaseService, FilterCondition, OrderDirection } from "../Base";
-import { UserService } from "../User";
+import { dbConnection } from "~knex/db";
+import { BaseService, FilterCondition, OrderDirection } from "~services/Base";
+import { UserService } from "~services/User";
 
 describe("Base Service", () => {
     const baseService = new BaseService(dbConnection);
@@ -27,6 +26,7 @@ describe("Base Service", () => {
     describe("getList", () => {
         const tableName = "users";
         const pk = "userNo";
+        //@ts-ignore - Accessing private variables for testing
         const tableColumns = userService.tableColumns;
         const options = {
             where: {},
@@ -39,6 +39,7 @@ describe("Base Service", () => {
         };
 
         test("successfully returns a list of records", () => {
+            //@ts-ignore - Accessing protected method for testing
             return baseService.getList(tableName, pk, tableColumns, options).then((recordSet) => {
                 recordSet.forEach((record) => {
                     expect.objectContaining({
@@ -51,67 +52,79 @@ describe("Base Service", () => {
         test("successfully returns the correct amount of items", () => {
             const itemsPerPage = 5;
 
-            return baseService
-                .getList(tableName, pk, tableColumns, { ...options, itemsPerPage })
-                .then((recordSet) => {
-                    expect(recordSet.length).toEqual(itemsPerPage);
-                });
+            return (
+                baseService
+                    //@ts-ignore - Accessing protected method for testing
+                    .getList(tableName, pk, tableColumns, { ...options, itemsPerPage })
+                    .then((recordSet) => {
+                        expect(recordSet.length).toEqual(itemsPerPage);
+                    })
+            );
         });
 
         test("successfully returns the correct index when passing in a page number", () => {
             const pageNo = Math.floor(Math.random() * 10) + 1;
             const itemsPerPage = 1;
 
-            return baseService
-                .getList(tableName, pk, tableColumns, { ...options, itemsPerPage, pageNo })
-                .then((recordSet) => {
-                    expect(recordSet.length).toEqual(1);
-                    expect.arrayContaining([expect.objectContaining({ [pk]: pageNo })]);
-                });
+            return (
+                baseService
+                    //@ts-ignore - Accessing protected method for testing
+                    .getList(tableName, pk, tableColumns, { ...options, itemsPerPage, pageNo })
+                    .then((recordSet) => {
+                        expect(recordSet.length).toEqual(1);
+                        expect.arrayContaining([expect.objectContaining({ [pk]: pageNo })]);
+                    })
+            );
         });
 
         test("successfully return the list in ascending order", () => {
-            return baseService
-                .getList(tableName, pk, tableColumns, {
-                    ...options,
-                    orderBy: { ...options.orderBy, direction: OrderDirection.ASC }
-                })
-                .then((recordSet) => {
-                    let expectedKey = 1;
+            return (
+                baseService
+                    //@ts-ignore - Accessing protected method for testing
+                    .getList(tableName, pk, tableColumns, {
+                        ...options,
+                        orderBy: { ...options.orderBy, direction: OrderDirection.ASC }
+                    })
+                    .then((recordSet) => {
+                        let expectedKey = 1;
 
-                    recordSet.forEach((record, index) => {
-                        if (index > 0 && index < recordSet.length - 1) {
-                            expect(record[pk]).toEqual(expectedKey);
-                            expect(record[pk]).toBeLessThan(recordSet[index + 1][pk]);
-                        } else {
-                            expect(record[pk]).toEqual(expectedKey);
-                        }
+                        recordSet.forEach((record, index) => {
+                            if (index > 0 && index < recordSet.length - 1) {
+                                expect(record[pk]).toEqual(expectedKey);
+                                expect(record[pk]).toBeLessThan(recordSet[index + 1][pk]);
+                            } else {
+                                expect(record[pk]).toEqual(expectedKey);
+                            }
 
-                        expectedKey++;
-                    });
-                });
+                            expectedKey++;
+                        });
+                    })
+            );
         });
 
         test("successfully returns the list in descending order", () => {
-            return baseService
-                .getList(tableName, pk, tableColumns, {
-                    ...options,
-                    orderBy: { ...options.orderBy, direction: OrderDirection.DESC }
-                })
-                .then((recordSet) => {
-                    let expectedKey = recordSet.length;
+            return (
+                baseService
+                    //@ts-ignore - Accessing protected method for testing
+                    .getList(tableName, pk, tableColumns, {
+                        ...options,
+                        orderBy: { ...options.orderBy, direction: OrderDirection.DESC }
+                    })
+                    .then((recordSet) => {
+                        let expectedKey = recordSet.length;
 
-                    recordSet.forEach((record, index) => {
-                        if (index > 0 && index < recordSet.length - 1) {
-                            expect(record[pk]).toEqual(expectedKey);
-                            expect(record[pk]).toBeGreaterThan(recordSet[index + 1][pk]);
-                        } else {
-                            expect(record[pk]).toEqual(expectedKey);
-                        }
+                        recordSet.forEach((record, index) => {
+                            if (index > 0 && index < recordSet.length - 1) {
+                                expect(record[pk]).toEqual(expectedKey);
+                                expect(record[pk]).toBeGreaterThan(recordSet[index + 1][pk]);
+                            } else {
+                                expect(record[pk]).toEqual(expectedKey);
+                            }
 
-                        expectedKey--;
-                    });
-                });
+                            expectedKey--;
+                        });
+                    })
+            );
         });
 
         describe("Where", () => {
@@ -119,47 +132,57 @@ describe("Base Service", () => {
                 test("throws a bad request error (400) if passed a column that is not filterable", () => {
                     const invalidFilterableColumn = "adamSandler";
 
-                    return baseService
-                        .getList(tableName, pk, tableColumns, {
-                            ...options,
-                            where: {
-                                [invalidFilterableColumn]: 1
-                            }
-                        })
-                        .catch((error) => {
-                            expect(error.statusCode).toEqual(400);
-                            expect(error.message).toEqual("Bad Request");
-                            expect(error.details).toEqual(
-                                expect.arrayContaining([
-                                    `You cannot filter by column: ${invalidFilterableColumn}`
-                                ])
-                            );
-                        });
+                    return (
+                        baseService
+                            //@ts-ignore - Accessing protected method for testing
+                            .getList(tableName, pk, tableColumns, {
+                                ...options,
+                                where: {
+                                    //@ts-ignore - Testing invalid columns
+                                    [invalidFilterableColumn]: 1
+                                }
+                            })
+                            .catch((error) => {
+                                expect(error.statusCode).toEqual(400);
+                                expect(error.message).toEqual("Bad Request");
+                                expect(error.details).toEqual(
+                                    expect.arrayContaining([
+                                        `You cannot filter by column: ${invalidFilterableColumn}`
+                                    ])
+                                );
+                            })
+                    );
                 });
 
                 test("throws a bad request error (400) when filtering a column with an invalid condition", () => {
                     const invalidFilterCondition = "newest";
                     const validColumn = tableColumns.find((column) => column.filterOptions);
 
-                    return baseService
-                        .getList(tableName, pk, tableColumns, {
-                            ...options,
-                            where: {
-                                [validColumn.key]: {
-                                    value: 1,
-                                    condition: invalidFilterCondition
+                    return (
+                        baseService
+                            //@ts-ignore - Accessing protected method for testing
+                            .getList(tableName, pk, tableColumns, {
+                                ...options,
+                                //@ts-ignore - Testing invalid conditions
+                                where: {
+                                    [validColumn!.key]: {
+                                        value: 1,
+                                        condition: invalidFilterCondition
+                                    }
                                 }
-                            }
-                        })
-                        .catch((error) => {
-                            expect(error.statusCode).toEqual(400);
-                            expect(error.message).toEqual("Bad Request");
-                            expect(error.details).toEqual(
-                                expect.arrayContaining([
-                                    `You cannot filter column ${validColumn.key} on condition: ${invalidFilterCondition}`
-                                ])
-                            );
-                        });
+                            })
+                            .catch((error) => {
+                                expect(error.statusCode).toEqual(400);
+                                expect(error.message).toEqual("Bad Request");
+                                expect(error.details).toEqual(
+                                    expect.arrayContaining([
+                                        `You cannot filter column ${
+                                            validColumn!.key
+                                        } on condition: ${invalidFilterCondition}`
+                                    ])
+                                );
+                            })
+                    );
                 });
 
                 [undefined, null].forEach((filterValue) => {
@@ -170,25 +193,32 @@ describe("Base Service", () => {
                                 column.filterOptions.validConditions.length > 0
                         );
 
-                        return baseService
-                            .getList(tableName, pk, tableColumns, {
-                                ...options,
-                                where: {
-                                    [validColumn.key]: {
-                                        value: filterValue,
-                                        condition: validColumn?.filterOptions[0]
+                        return (
+                            baseService
+                                //@ts-ignore - Accessing protected method for testing
+                                .getList(tableName, pk, tableColumns, {
+                                    ...options,
+                                    //@ts-ignore - Testing invalid condition values
+                                    where: {
+                                        [validColumn!.key]: {
+                                            value: filterValue,
+                                            //@ts-ignore - Testing invalid condition values
+                                            condition: validColumn.filterOptions[0]
+                                        }
                                     }
-                                }
-                            })
-                            .catch((error) => {
-                                expect(error.statusCode).toEqual(400);
-                                expect(error.message).toEqual("Bad Request");
-                                expect(error.details).toEqual(
-                                    expect.arrayContaining([
-                                        `You must pass a valid value to filter on column: ${validColumn.key}`
-                                    ])
-                                );
-                            });
+                                })
+                                .catch((error) => {
+                                    expect(error.statusCode).toEqual(400);
+                                    expect(error.message).toEqual("Bad Request");
+                                    expect(error.details).toEqual(
+                                        expect.arrayContaining([
+                                            `You must pass a valid value to filter on column: ${
+                                                validColumn!.key
+                                            }`
+                                        ])
+                                    );
+                                })
+                        );
                     });
                 });
             }); // close describe("Validate Where Clauses")
@@ -197,122 +227,140 @@ describe("Base Service", () => {
                 test("successfully returns the correct list of records when passed 'eq' as a condition", () => {
                     const pkValue = Math.floor(Math.random() * 10) + 1;
 
-                    return baseService
-                        .getList(tableName, pk, tableColumns, {
-                            ...options,
-                            where: {
-                                [pk]: {
-                                    value: pkValue,
-                                    condition: FilterCondition.Equal
+                    return (
+                        baseService
+                            //@ts-ignore - Accessing protected method for testing
+                            .getList(tableName, pk, tableColumns, {
+                                ...options,
+                                where: {
+                                    [pk]: {
+                                        value: pkValue,
+                                        condition: FilterCondition.Equal
+                                    }
                                 }
-                            }
-                        })
-                        .then((recordSet) => {
-                            expect(recordSet.length).toEqual(1);
-                            expect(recordSet[0][pk]).toEqual(pkValue);
-                        });
+                            })
+                            .then((recordSet) => {
+                                expect(recordSet.length).toEqual(1);
+                                expect(recordSet[0][pk]).toEqual(pkValue);
+                            })
+                    );
                 });
 
                 test("successfully returns the correct list of records when passed 'gte' as a condition", () => {
                     const pkValue = Math.floor(Math.random() * 5) + 1;
 
-                    return baseService
-                        .getList(tableName, pk, tableColumns, {
-                            ...options,
-                            where: {
-                                [pk]: {
-                                    value: pkValue,
-                                    condition: FilterCondition.GreaterThanOrEqual
+                    return (
+                        baseService
+                            //@ts-ignore - Accessing protected method for testing
+                            .getList(tableName, pk, tableColumns, {
+                                ...options,
+                                where: {
+                                    [pk]: {
+                                        value: pkValue,
+                                        condition: FilterCondition.GreaterThanOrEqual
+                                    }
                                 }
-                            }
-                        })
-                        .then((recordSet) => {
-                            expect(recordSet.length).toBeGreaterThan(0);
-                            recordSet.forEach((record) => {
-                                expect(record[pk]).toBeGreaterThanOrEqual(pkValue);
-                            });
-                        });
+                            })
+                            .then((recordSet) => {
+                                expect(recordSet.length).toBeGreaterThan(0);
+                                recordSet.forEach((record) => {
+                                    expect(record[pk]).toBeGreaterThanOrEqual(pkValue);
+                                });
+                            })
+                    );
                 });
 
                 test("successfully returns the correct list of records when passed 'gt' as a condition", () => {
                     const pkValue = Math.floor(Math.random() * 5) + 1;
 
-                    return baseService
-                        .getList(tableName, pk, tableColumns, {
-                            ...options,
-                            where: {
-                                [pk]: {
-                                    value: pkValue,
-                                    condition: FilterCondition.GreaterThan
+                    return (
+                        baseService
+                            //@ts-ignore - Accessing protected method for testing
+                            .getList(tableName, pk, tableColumns, {
+                                ...options,
+                                where: {
+                                    [pk]: {
+                                        value: pkValue,
+                                        condition: FilterCondition.GreaterThan
+                                    }
                                 }
-                            }
-                        })
-                        .then((recordSet) => {
-                            expect(recordSet.length).toBeGreaterThan(0);
-                            recordSet.forEach((record) => {
-                                expect(record[pk]).toBeGreaterThan(pkValue);
-                            });
-                        });
+                            })
+                            .then((recordSet) => {
+                                expect(recordSet.length).toBeGreaterThan(0);
+                                recordSet.forEach((record) => {
+                                    expect(record[pk]).toBeGreaterThan(pkValue);
+                                });
+                            })
+                    );
                 });
 
                 test("successfully returns the correct list of records when passed 'lte' as a condition", () => {
                     const pkValue = Math.floor(Math.random() * 10) + 1;
 
-                    return baseService
-                        .getList(tableName, pk, tableColumns, {
-                            ...options,
-                            where: {
-                                [pk]: {
-                                    value: pkValue,
-                                    condition: FilterCondition.LessThanOrEqual
+                    return (
+                        baseService
+                            //@ts-ignore - Accessing protected method for testing
+                            .getList(tableName, pk, tableColumns, {
+                                ...options,
+                                where: {
+                                    [pk]: {
+                                        value: pkValue,
+                                        condition: FilterCondition.LessThanOrEqual
+                                    }
                                 }
-                            }
-                        })
-                        .then((recordSet) => {
-                            expect(recordSet.length).toBeGreaterThan(0);
-                            recordSet.forEach((record) => {
-                                expect(record[pk]).toBeLessThanOrEqual(pkValue);
-                            });
-                        });
+                            })
+                            .then((recordSet) => {
+                                expect(recordSet.length).toBeGreaterThan(0);
+                                recordSet.forEach((record) => {
+                                    expect(record[pk]).toBeLessThanOrEqual(pkValue);
+                                });
+                            })
+                    );
                 });
 
                 test("successfully returns the correct list of records when passed 'lt' as a condition", () => {
                     const pkValue = Math.floor(Math.random() * 10) + 2;
 
-                    return baseService
-                        .getList(tableName, pk, tableColumns, {
-                            ...options,
-                            where: {
-                                [pk]: {
-                                    value: pkValue,
-                                    condition: FilterCondition.LessThan
+                    return (
+                        baseService
+                            //@ts-ignore - Accessing protected method for testing
+                            .getList(tableName, pk, tableColumns, {
+                                ...options,
+                                where: {
+                                    [pk]: {
+                                        value: pkValue,
+                                        condition: FilterCondition.LessThan
+                                    }
                                 }
-                            }
-                        })
-                        .then((recordSet) => {
-                            expect(recordSet.length).toBeGreaterThan(0);
-                            recordSet.forEach((record) => {
-                                expect(record[pk]).toBeLessThan(pkValue);
-                            });
-                        });
+                            })
+                            .then((recordSet) => {
+                                expect(recordSet.length).toBeGreaterThan(0);
+                                recordSet.forEach((record) => {
+                                    expect(record[pk]).toBeLessThan(pkValue);
+                                });
+                            })
+                    );
                 });
 
                 test("successfully returns the correct list of records when no condition is passed", () => {
                     const pkValue = Math.floor(Math.random() * 10) + 1;
 
-                    return baseService
-                        .getList(tableName, pk, tableColumns, {
-                            ...options,
-                            where: {
-                                [pk]: {
-                                    value: pkValue
+                    return (
+                        baseService
+                            //@ts-ignore - Accessing protected method for testing
+                            .getList(tableName, pk, tableColumns, {
+                                ...options,
+                                where: {
+                                    [pk]: {
+                                        value: pkValue
+                                    }
                                 }
-                            }
-                        })
-                        .then((recordSet) => {
-                            expect(recordSet.length).toEqual(1);
-                            expect(recordSet[0][pk]).toEqual(pkValue);
-                        });
+                            })
+                            .then((recordSet) => {
+                                expect(recordSet.length).toEqual(1);
+                                expect(recordSet[0][pk]).toEqual(pkValue);
+                            })
+                    );
                 });
             }); // close describe("Build Where Clauses")
         }); // close describe("Where")
@@ -321,45 +369,52 @@ describe("Base Service", () => {
             test("throws a bad request error (400) if the passed column is not sortable", () => {
                 const nonSortableColumn = tableColumns.filter((column) => !column.isSortable)[0];
 
-                return baseService
-                    .getList(tableName, pk, tableColumns, {
-                        ...options,
-                        orderBy: {
-                            ...options.orderBy,
-                            column: nonSortableColumn.key
-                        }
-                    })
-                    .catch((error) => {
-                        expect(error.statusCode).toEqual(400);
-                        expect(error.message).toEqual("Bad Request");
-                        expect(error.details).toEqual(
-                            expect.arrayContaining([
-                                `You cannot sort by column: ${nonSortableColumn.key}`
-                            ])
-                        );
-                    });
+                return (
+                    baseService
+                        //@ts-ignore - Accessing protected method for testing
+                        .getList(tableName, pk, tableColumns, {
+                            ...options,
+                            orderBy: {
+                                ...options.orderBy,
+                                column: nonSortableColumn.key
+                            }
+                        })
+                        .catch((error) => {
+                            expect(error.statusCode).toEqual(400);
+                            expect(error.message).toEqual("Bad Request");
+                            expect(error.details).toEqual(
+                                expect.arrayContaining([
+                                    `You cannot sort by column: ${nonSortableColumn.key}`
+                                ])
+                            );
+                        })
+                );
             });
 
             test("throws a bad request error (400) if the passed direction is invalid", () => {
                 const invalidSortDirection = "up";
 
-                return baseService
-                    .getList(tableName, pk, tableColumns, {
-                        ...options,
-                        orderBy: {
-                            ...options.orderBy,
-                            direction: invalidSortDirection
-                        }
-                    })
-                    .catch((error) => {
-                        expect(error.statusCode).toEqual(400);
-                        expect(error.message).toEqual("Bad Request");
-                        expect(error.details).toEqual(
-                            expect.arrayContaining([
-                                `You cannot sort by direction: ${invalidSortDirection}`
-                            ])
-                        );
-                    });
+                return (
+                    baseService
+                        //@ts-ignore - Accessing protected method for testing
+                        .getList(tableName, pk, tableColumns, {
+                            ...options,
+                            orderBy: {
+                                ...options.orderBy,
+                                //@ts-ignore - Testing invalid sort directions
+                                direction: invalidSortDirection
+                            }
+                        })
+                        .catch((error) => {
+                            expect(error.statusCode).toEqual(400);
+                            expect(error.message).toEqual("Bad Request");
+                            expect(error.details).toEqual(
+                                expect.arrayContaining([
+                                    `You cannot sort by direction: ${invalidSortDirection}`
+                                ])
+                            );
+                        })
+                );
             });
         }); // close describe("Order By")
     }); // close describe("getList")
@@ -369,6 +424,7 @@ describe("Base Service", () => {
             const count = 50;
             const itemsPerPage = Math.floor(Math.random() * 10) + 1;
             const pageNo = Math.floor(Math.random() * (count / itemsPerPage)) + 1;
+            //@ts-ignore - Accessing protected method for testing
             const pagination = baseService.buildPagination(count, pageNo, itemsPerPage);
 
             expect(pagination).toEqual({
@@ -385,6 +441,7 @@ describe("Base Service", () => {
             const count = 0;
             const itemsPerPage = Math.floor(Math.random() * 10) + 1;
             const pageNo = Math.floor(Math.random() * (count / itemsPerPage)) + 1;
+            //@ts-ignore - Accessing protected method for testing
             const pagination = baseService.buildPagination(count, pageNo, itemsPerPage);
 
             expect(pagination).toEqual({
@@ -401,6 +458,7 @@ describe("Base Service", () => {
             const count = 10;
             const itemsPerPage = 100000;
             const pageNo = 1000;
+            //@ts-ignore - Accessing protected method for testing
             const pagination = baseService.buildPagination(count, pageNo, itemsPerPage);
 
             expect(pagination).toEqual({
@@ -417,6 +475,7 @@ describe("Base Service", () => {
             const count = 100;
             const itemsPerPage = 10;
             const pageNo = 10;
+            //@ts-ignore - Accessing protected method for testing
             const pagination = baseService.buildPagination(count, pageNo, itemsPerPage);
 
             expect(pagination).toEqual({
@@ -433,6 +492,7 @@ describe("Base Service", () => {
             const count = 10;
             const itemsPerPage = 1;
             const pageNo = 1;
+            //@ts-ignore - Accessing protected method for testing
             const pagination = baseService.buildPagination(count, pageNo, itemsPerPage);
 
             expect(pagination).toEqual({
@@ -449,6 +509,7 @@ describe("Base Service", () => {
     describe("getCount", () => {
         const tableName = "users";
         const pk = "userNo";
+        //@ts-ignore - Accessing private variables for testing
         const tableColumns = userService.tableColumns;
         const randomFilter = Object.values(FilterCondition)[
             Math.floor(Math.random() * Object.values(FilterCondition).length)
@@ -470,7 +531,9 @@ describe("Base Service", () => {
 
         test("successfully returns the correct count", () => {
             return Promise.all([
+                //@ts-ignore - Accessing protected method for testing
                 baseService.getList(tableName, pk, tableColumns, options),
+                //@ts-ignore - Accessing protected method for testing
                 baseService.getCount(tableName, pk, tableColumns, options.where)
             ]).then(([recordSet, count]) => {
                 expect(recordSet.length).toEqual(count);
@@ -478,24 +541,29 @@ describe("Base Service", () => {
         });
 
         test("throws an error when the count could not be retrieved", () => {
-            return baseService
-                .getCount(tableName, "pantomime", tableColumns, options.where)
-                .catch((error) => {
-                    expect(error.statusCode).toEqual(500);
-                    expect(error).toHaveProperty("message");
-                    expect(error).toHaveProperty("details");
-                });
+            return (
+                baseService
+                    //@ts-ignore - Accessing protected method for testing
+                    .getCount(tableName, "pantomime", tableColumns, options.where)
+                    .catch((error) => {
+                        expect(error.statusCode).toEqual(500);
+                        expect(error).toHaveProperty("message");
+                        expect(error).toHaveProperty("details");
+                    })
+            );
         });
     }); // close describe("getCount")
 
     describe("validateRecordNo", () => {
         test("successfully resolves if recordNo is valid", () => {
+            //@ts-ignore - Accessing protected method for testing
             return baseService.validateRecordNo(1, "userNo").then((response) => {
                 expect(response).toBe(undefined);
             });
         });
 
         test("throws a bad request error (400) if recordNo is undefined", () => {
+            //@ts-ignore - Accessing protected method for testing
             return baseService.validateRecordNo(undefined, "userNo").catch((error) => {
                 expect(error.statusCode).toEqual(400);
                 expect(error.message).toEqual("Bad Request");
@@ -506,6 +574,7 @@ describe("Base Service", () => {
         });
 
         test("throws a bad request error (400) if recordNo is null", () => {
+            //@ts-ignore - Accessing protected method for testing
             return baseService.validateRecordNo(null, "userNo").catch((error) => {
                 expect(error.statusCode).toEqual(400);
                 expect(error.message).toEqual("Bad Request");
@@ -516,6 +585,7 @@ describe("Base Service", () => {
         });
 
         test("throws a bad request error (400) if recordNo is a string", () => {
+            //@ts-ignore - Accessing protected method for testing
             return baseService.validateRecordNo("thebiglebowski", "userNo").catch((error) => {
                 expect(error.statusCode).toEqual(400);
                 expect(error.message).toEqual("Bad Request");

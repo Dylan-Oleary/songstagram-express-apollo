@@ -1,16 +1,16 @@
-//@ts-nocheck
 import bcrypt from "bcrypt";
 import faker from "faker";
 import path from "path";
 
-import { dbConnection } from "../../knex/db";
+import { dbConnection } from "~knex/db";
 import {
+    ICreateUserValues,
     IUpdateUserValues,
     IUserColumnKeys,
     IUserColumnLabels,
     IUserRecord,
     UserService
-} from "../User";
+} from "~services/User";
 
 describe("User Service", () => {
     const pk = "userNo";
@@ -51,7 +51,9 @@ describe("User Service", () => {
         };
 
         if (deletePasswords) {
+            //@ts-ignore - Delete passwords to build valid submission
             delete submission[IUserColumnKeys.Password];
+            //@ts-ignore - Delete passwords to build valid submission
             delete submission[IUserColumnKeys.ConfirmPassword];
         }
 
@@ -85,6 +87,7 @@ describe("User Service", () => {
                     test("throws a validation error (422) if its value is undefined", () => {
                         const invalidSubmission = { ...submission, [key]: undefined };
 
+                        //@ts-ignore - Testing for incorrect types
                         return userService.createUser(invalidSubmission).catch((error) => {
                             expect(error.statusCode).toEqual(422);
                             expect(error.message).toEqual("Validation Error");
@@ -97,6 +100,7 @@ describe("User Service", () => {
                     test("throws a validation error (422) if its value is null", () => {
                         const invalidSubmission = { ...submission, [key]: null };
 
+                        //@ts-ignore - Testing for incorrect types
                         return userService.createUser(invalidSubmission).catch((error) => {
                             expect(error.statusCode).toEqual(422);
                             expect(error.message).toEqual("Validation Error");
@@ -109,6 +113,7 @@ describe("User Service", () => {
                     test("throws a validation error (422) if its value is empty", () => {
                         const invalidSubmission = { ...submission, [key]: "" };
 
+                        //@ts-ignore - Testing for incorrect types
                         return userService.createUser(invalidSubmission).catch((error) => {
                             expect(error.statusCode).toEqual(422);
                             expect(error.message).toEqual("Validation Error");
@@ -124,6 +129,7 @@ describe("User Service", () => {
                             [key]: new Array(257).join("x")
                         };
 
+                        //@ts-ignore - Testing for incorrect types
                         return userService.createUser(invalidSubmission).catch((error) => {
                             expect(error.statusCode).toEqual(422);
                             expect(error.message).toEqual("Validation Error");
@@ -144,6 +150,7 @@ describe("User Service", () => {
                         [IUserColumnKeys.Username]: undefined
                     };
 
+                    //@ts-ignore - Testing for incorrect types
                     return userService.createUser(invalidSubmission).catch((error) => {
                         expect(error.statusCode).toEqual(422);
                         expect(error.message).toEqual("Validation Error");
@@ -161,6 +168,7 @@ describe("User Service", () => {
                         [IUserColumnKeys.Username]: null
                     };
 
+                    //@ts-ignore - Testing for incorrect types
                     return userService.createUser(invalidSubmission).catch((error) => {
                         expect(error.statusCode).toEqual(422);
                         expect(error.message).toEqual("Validation Error");
@@ -178,6 +186,7 @@ describe("User Service", () => {
                         [IUserColumnKeys.Username]: ""
                     };
 
+                    //@ts-ignore - Testing for incorrect types
                     return userService.createUser(invalidSubmission).catch((error) => {
                         expect(error.statusCode).toEqual(422);
                         expect(error.message).toEqual("Validation Error");
@@ -195,6 +204,7 @@ describe("User Service", () => {
                         [IUserColumnKeys.Username]: new Array(32).join("x")
                     };
 
+                    //@ts-ignore - Testing for incorrect types
                     return userService.createUser(invalidSubmission).catch((error) => {
                         expect(error.statusCode).toEqual(422);
                         expect(error.message).toEqual("Validation Error");
@@ -220,6 +230,7 @@ describe("User Service", () => {
                             [IUserColumnKeys.Username]: username
                         };
 
+                        //@ts-ignore - Testing for incorrect types
                         return userService.createUser(invalidSubmission).catch((error) => {
                             expect(error.statusCode).toEqual(422);
                             expect(error.message).toEqual("Validation Error");
@@ -238,6 +249,7 @@ describe("User Service", () => {
                         [IUserColumnKeys.Email]: undefined
                     };
 
+                    //@ts-ignore - Testing for incorrect types
                     return userService.createUser(invalidSubmission).catch((error) => {
                         expect(error.statusCode).toEqual(422);
                         expect(error.message).toEqual("Validation Error");
@@ -255,6 +267,7 @@ describe("User Service", () => {
                         [IUserColumnKeys.Email]: null
                     };
 
+                    //@ts-ignore - Testing for incorrect types
                     return userService.createUser(invalidSubmission).catch((error) => {
                         expect(error.statusCode).toEqual(422);
                         expect(error.message).toEqual("Validation Error");
@@ -272,6 +285,7 @@ describe("User Service", () => {
                         [IUserColumnKeys.Email]: ""
                     };
 
+                    //@ts-ignore - Testing for incorrect types
                     return userService.createUser(invalidSubmission).catch((error) => {
                         expect(error.statusCode).toEqual(422);
                         expect(error.message).toEqual("Validation Error");
@@ -289,6 +303,7 @@ describe("User Service", () => {
                         [IUserColumnKeys.Email]: new Array(257).join("x")
                     };
 
+                    //@ts-ignore - Testing for incorrect types
                     return userService.createUser(invalidSubmission).catch((error) => {
                         expect(error.statusCode).toEqual(422);
                         expect(error.message).toEqual("Validation Error");
@@ -321,6 +336,7 @@ describe("User Service", () => {
                             [IUserColumnKeys.Email]: invalidEmail
                         };
 
+                        //@ts-ignore - Testing for incorrect types
                         return userService.createUser(invalidSubmission).catch((error) => {
                             expect(error.statusCode).toEqual(422);
                             expect(error.message).toEqual("Validation Error");
@@ -339,6 +355,7 @@ describe("User Service", () => {
                         [IUserColumnKeys.Password]: undefined
                     };
 
+                    //@ts-ignore - Testing for incorrect types
                     return userService.createUser(invalidSubmission).catch((error) => {
                         expect(error.statusCode).toEqual(422);
                         expect(error.message).toEqual("Validation Error");
@@ -356,6 +373,7 @@ describe("User Service", () => {
                         [IUserColumnKeys.Password]: null
                     };
 
+                    //@ts-ignore - Testing for incorrect types
                     return userService.createUser(invalidSubmission).catch((error) => {
                         expect(error.statusCode).toEqual(422);
                         expect(error.message).toEqual("Validation Error");
@@ -373,6 +391,7 @@ describe("User Service", () => {
                         [IUserColumnKeys.Password]: ""
                     };
 
+                    //@ts-ignore - Testing for incorrect types
                     return userService.createUser(invalidSubmission).catch((error) => {
                         expect(error.statusCode).toEqual(422);
                         expect(error.message).toEqual("Validation Error");
@@ -390,6 +409,7 @@ describe("User Service", () => {
                         [IUserColumnKeys.Password]: new Array(52).join("x")
                     };
 
+                    //@ts-ignore - Testing for incorrect types
                     return userService.createUser(invalidSubmission).catch((error) => {
                         expect(error.statusCode).toEqual(422);
                         expect(error.message).toEqual("Validation Error");
@@ -409,6 +429,7 @@ describe("User Service", () => {
                         [IUserColumnKeys.ConfirmPassword]: undefined
                     };
 
+                    //@ts-ignore - Testing for incorrect types
                     return userService.createUser(invalidSubmission).catch((error) => {
                         expect(error.statusCode).toEqual(422);
                         expect(error.message).toEqual("Validation Error");
@@ -426,6 +447,7 @@ describe("User Service", () => {
                         [IUserColumnKeys.ConfirmPassword]: null
                     };
 
+                    //@ts-ignore - Testing for incorrect types
                     return userService.createUser(invalidSubmission).catch((error) => {
                         expect(error.statusCode).toEqual(422);
                         expect(error.message).toEqual("Validation Error");
@@ -443,6 +465,7 @@ describe("User Service", () => {
                         [IUserColumnKeys.ConfirmPassword]: ""
                     };
 
+                    //@ts-ignore - Testing for incorrect types
                     return userService.createUser(invalidSubmission).catch((error) => {
                         expect(error.statusCode).toEqual(422);
                         expect(error.message).toEqual("Validation Error");
@@ -461,6 +484,7 @@ describe("User Service", () => {
                         [IUserColumnKeys.ConfirmPassword]: "password"
                     };
 
+                    //@ts-ignore - Testing for incorrect types
                     return userService.createUser(invalidSubmission).catch((error) => {
                         expect(error.statusCode).toEqual(422);
                         expect(error.message).toEqual("Validation Error");
@@ -665,9 +689,12 @@ describe("User Service", () => {
         });
 
         test("successfuly returns only selectable columns", () => {
+            //@ts-ignore - Accessing private variables for testing
             const selectableColumns = userService.tableColumns
                 .filter((column) => column.isSelectable)
                 .map((column) => column.key);
+
+            //@ts-ignore - Accessing private variables for testing
             const nonselectableColumns = userService.tableColumns
                 .filter((column) => !column.isSelectable)
                 .map((column) => column.key);
@@ -687,7 +714,7 @@ describe("User Service", () => {
 
     describe("getUser", () => {
         let user: IUserRecord;
-        let submission = buildValidSubmission("dazedandconfused");
+        let submission = buildValidSubmission("dazedandconfused") as ICreateUserValues;
 
         beforeAll(async (done) => {
             user = await userService.createUser(submission);
@@ -726,9 +753,13 @@ describe("User Service", () => {
 
     describe("searchUser", () => {
         let user: IUserRecord;
+
+        //@ts-ignore - Accessing private variables for testing
         const validColumns = userService.tableColumns
             .filter((column) => column.isSearchable)
             .map((column) => column.key);
+
+        //@ts-ignore - Accessing private variables for testing
         const invalidColumns = userService.tableColumns
             .filter((column) => !column.isSearchable)
             .map((column) => column.key);
@@ -756,18 +787,24 @@ describe("User Service", () => {
         test("returns a list of users when passed a valid search column", () => {
             const validColumn = validColumns[Math.floor(Math.random() * validColumns.length)];
 
-            return userService
-                .searchUser(user[validColumn].slice(0, user[validColumn].length - 1), [validColumn])
-                .then((users) => {
-                    expect(users).toContainEqual(
-                        expect.objectContaining({
-                            [validColumn]: user[validColumn],
-                            isDeleted: 0,
-                            isBanned: 0
-                        })
-                    );
-                    expect(users.length).toBeGreaterThan(0);
-                });
+            return (
+                userService
+                    //@ts-ignore - Enum columns used to index records
+                    .searchUser(user[validColumn].slice(0, user[validColumn].length - 1), [
+                        validColumn
+                    ])
+                    .then((users) => {
+                        expect(users).toContainEqual(
+                            expect.objectContaining({
+                                //@ts-ignore - Enum columns used to index records
+                                [validColumn]: user[validColumn],
+                                isDeleted: 0,
+                                isBanned: 0
+                            })
+                        );
+                        expect(users.length).toBeGreaterThan(0);
+                    })
+            );
         });
 
         test("returns a list of users when passed multiple valid search columns", () => {
@@ -793,18 +830,22 @@ describe("User Service", () => {
 
         validColumns.forEach((column) => {
             test(`returns a list of users when searching by: ${column}`, () => {
-                return userService
-                    .searchUser(user[column].slice(0, user[column].length - 1), [column])
-                    .then((users) => {
-                        expect(users).toContainEqual(
-                            expect.objectContaining({
-                                [column]: user[column],
-                                isDeleted: 0,
-                                isBanned: 0
-                            })
-                        );
-                        expect(users.length).toBeGreaterThan(0);
-                    });
+                return (
+                    userService
+                        //@ts-ignore - Enum columns used to index records
+                        .searchUser(user[column].slice(0, user[column].length - 1), [column])
+                        .then((users) => {
+                            expect(users).toContainEqual(
+                                expect.objectContaining({
+                                    //@ts-ignore - Enum columns used to index records
+                                    [column]: user[column],
+                                    isDeleted: 0,
+                                    isBanned: 0
+                                })
+                            );
+                            expect(users.length).toBeGreaterThan(0);
+                        })
+                );
             });
         });
 
@@ -839,6 +880,7 @@ describe("User Service", () => {
 
         [100, "string", true, { key: 120 }].forEach((invalidColumn) => {
             test(`throws a bad request error (400) if search columns are of invalid type. Passed: ${typeof invalidColumn}`, () => {
+                //@ts-ignore - Testing search on an invalid column
                 return userService.searchUser("error time!", "throwmeaway!").catch((error) => {
                     expect(error.statusCode).toEqual(400);
                     expect(error.message).toEqual("Bad Request");
@@ -851,8 +893,7 @@ describe("User Service", () => {
     }); // close describe("searchUser")
 
     describe("createUser", () => {
-        let newUser: IUser;
-        let submission = buildValidSubmission("spaghetti_strings");
+        let submission = buildValidSubmission("spaghetti_strings") as ICreateUserValues;
 
         test("successfully creates a user", () => {
             return userService.createUser(submission).then((userRecord) => {
@@ -865,10 +906,9 @@ describe("User Service", () => {
                     IUserColumnKeys.Username,
                     IUserColumnKeys.Email
                 ].forEach((key) => {
+                    //@ts-ignore - Enum columns used to index records
                     expect(userRecord[key]).toEqual(submission[key]);
                 });
-
-                newUser = userRecord;
             });
         });
 
@@ -891,7 +931,7 @@ describe("User Service", () => {
 
         test("throws a conflict error (409) if a username is passed that is already taken", () => {
             return userService.getUser(1).then((userRecord) => {
-                const submission = buildValidSubmission(userRecord.username);
+                const submission = buildValidSubmission(userRecord.username) as ICreateUserValues;
 
                 return userService.createUser(submission).catch((error) => {
                     expect(error.statusCode).toEqual(409);
@@ -988,8 +1028,8 @@ describe("User Service", () => {
     }); // close describe("updateUser")
 
     describe("deleteUser", () => {
-        let newUser;
-        let submission = buildValidSubmission("gurth_mcgurth");
+        let newUser: IUserRecord;
+        let submission = buildValidSubmission("gurth_mcgurth") as ICreateUserValues;
 
         beforeAll(async (done) => {
             newUser = await userService.createUser(submission);
@@ -1018,8 +1058,8 @@ describe("User Service", () => {
     }); // close describe("deleteUser")
 
     describe("banUser", () => {
-        let newUser;
-        let submission = buildValidSubmission("steely_dan_the_man");
+        let newUser: IUserRecord;
+        let submission = buildValidSubmission("steely_dan_the_man") as ICreateUserValues;
 
         beforeAll(async (done) => {
             newUser = await userService.createUser(submission);
@@ -1049,7 +1089,7 @@ describe("User Service", () => {
 
     describe("updatePassword", () => {
         let user: IUserRecord;
-        let submission = buildValidSubmission("thedirtynil");
+        let submission = buildValidSubmission("thedirtynil") as ICreateUserValues;
         let passwordSubmission = {
             currentPassword: "M0N3y!",
             newPassword: "thedr3@mis0v3r",

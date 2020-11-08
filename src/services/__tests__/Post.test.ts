@@ -1,15 +1,15 @@
 import faker from "faker";
 import path from "path";
 
-import { dbConnection } from "../../knex/db";
+import { dbConnection } from "~knex/db";
 import {
     ICreatePostValues,
     IPostColumnKeys,
     IPostColumnLabels,
     IPostRecord,
     PostService
-} from "../Post";
-import { IUserColumnKeys, IUserRecord, UserService } from "../User";
+} from "~services/Post";
+import { IUserColumnKeys, IUserRecord, UserService } from "~services/User";
 
 describe("Post Service", () => {
     const pk = "postNo";

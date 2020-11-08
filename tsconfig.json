@@ -3,6 +3,8 @@
     "baseUrl": ".",
     "paths": {
       "~knex/*": ["src/knex/*"],
+      "~lib/*": ["src/lib/*"],
+      "~root/*": ["src/*"],
       "~services/*": ["src/services/*"]
     },
     "esModuleInterop": true,
