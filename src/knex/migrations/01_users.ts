@@ -14,10 +14,6 @@ exports.up = (knex: Knex): Promise<any> =>
 
         table.string("profilePicture", 255).notNullable().defaultTo("");
 
-        table.integer("postCount").notNullable().unsigned().defaultTo(0);
-        table.integer("followerCount").notNullable().unsigned().defaultTo(0);
-        table.integer("followingCount").notNullable().unsigned().defaultTo(0);
-
         table.boolean("isDeleted").defaultTo(false);
         table.boolean("isBanned").defaultTo(false);
 

@@ -19,9 +19,6 @@ export interface IUserRecord {
     username: string;
     email: string;
     profilePicture: string;
-    postCount: number;
-    followerCount: number;
-    followingCount: number;
     isDeleted: boolean;
     isBanned: boolean;
     createdDate: Date;
@@ -69,9 +66,6 @@ export enum IUserColumnKeys {
     Password = "password",
     ConfirmPassword = "confirmPassword",
     ProfilePicture = "profilePicture",
-    PostCount = "postCount",
-    FollowerCount = "followerCount",
-    FollowingCount = "followingCount",
     IsBanned = "isBanned",
     IsDeleted = "isDeleted",
     CreatedDate = "createdDate",
@@ -89,9 +83,6 @@ export enum IUserColumnLabels {
     Password = "Password",
     ConfirmPassword = "Confirm Password",
     ProfilePicture = "Profile Picture",
-    PostCount = "Post Count",
-    FollowerCount = "Follower Count",
-    FollowingCount = "Following Count",
     IsBanned = "Is Banned",
     IsDeleted = "Is Deleted",
     CreatedDate = "Created Date",
@@ -282,60 +273,6 @@ class UserService extends BaseService {
 
                 return undefined;
             }
-        },
-        {
-            key: IUserColumnKeys.PostCount,
-            isSelectable: true,
-            isSearchable: false,
-            isSortable: true,
-            filterOptions: {
-                validConditions: [
-                    FilterCondition.Equal,
-                    FilterCondition.GreaterThan,
-                    FilterCondition.GreaterThanOrEqual,
-                    FilterCondition.LessThan,
-                    FilterCondition.LessThanOrEqual
-                ]
-            },
-            isRequiredOnCreate: false,
-            canEdit: false,
-            label: IUserColumnLabels.PostCount
-        },
-        {
-            key: IUserColumnKeys.FollowerCount,
-            isSelectable: true,
-            isSearchable: false,
-            isSortable: true,
-            filterOptions: {
-                validConditions: [
-                    FilterCondition.Equal,
-                    FilterCondition.GreaterThan,
-                    FilterCondition.GreaterThanOrEqual,
-                    FilterCondition.LessThan,
-                    FilterCondition.LessThanOrEqual
-                ]
-            },
-            isRequiredOnCreate: false,
-            canEdit: false,
-            label: IUserColumnLabels.FollowerCount
-        },
-        {
-            key: IUserColumnKeys.FollowingCount,
-            isSelectable: true,
-            isSearchable: false,
-            isSortable: true,
-            filterOptions: {
-                validConditions: [
-                    FilterCondition.Equal,
-                    FilterCondition.GreaterThan,
-                    FilterCondition.GreaterThanOrEqual,
-                    FilterCondition.LessThan,
-                    FilterCondition.LessThanOrEqual
-                ]
-            },
-            isRequiredOnCreate: false,
-            canEdit: false,
-            label: IUserColumnLabels.FollowingCount
         },
         {
             key: IUserColumnKeys.IsDeleted,

@@ -16,8 +16,6 @@ export interface IPostRecord {
     userNo: number;
     body: string;
     spotifyTrackId: string;
-    likeCount: number;
-    commentCount: number;
     isEdited: boolean;
     isDeleted: boolean;
     createdDate: Date;
@@ -44,8 +42,6 @@ export enum IPostColumnKeys {
     UserNo = "userNo",
     Body = "body",
     SpotifyTrackID = "spotifyTrackId",
-    LikeCount = "likeCount",
-    CommentCount = "commentCount",
     IsEdited = "isEdited",
     IsDeleted = "isDeleted",
     CreatedDate = "createdDate",
@@ -57,8 +53,6 @@ export enum IPostColumnLabels {
     UserNo = "User Number",
     Body = "Body",
     SpotifyTrackID = "Spotify Track ID",
-    LikeCount = "Like Count",
-    CommentCount = "Comment Count",
     IsEdited = "Is Edited",
     IsDeleted = "Is Deleted",
     CreatedDate = "Created Date",
@@ -143,42 +137,6 @@ class PostService extends BaseService {
             isRequiredOnCreate: true,
             canEdit: false,
             label: IPostColumnLabels.SpotifyTrackID
-        },
-        {
-            key: IPostColumnKeys.LikeCount,
-            isSelectable: true,
-            isSearchable: false,
-            isSortable: true,
-            filterOptions: {
-                validConditions: [
-                    FilterCondition.Equal,
-                    FilterCondition.GreaterThan,
-                    FilterCondition.GreaterThanOrEqual,
-                    FilterCondition.LessThan,
-                    FilterCondition.LessThanOrEqual
-                ]
-            },
-            isRequiredOnCreate: false,
-            canEdit: false,
-            label: IPostColumnLabels.LikeCount
-        },
-        {
-            key: IPostColumnKeys.CommentCount,
-            isSelectable: true,
-            isSearchable: false,
-            isSortable: true,
-            filterOptions: {
-                validConditions: [
-                    FilterCondition.Equal,
-                    FilterCondition.GreaterThan,
-                    FilterCondition.GreaterThanOrEqual,
-                    FilterCondition.LessThan,
-                    FilterCondition.LessThanOrEqual
-                ]
-            },
-            isRequiredOnCreate: false,
-            canEdit: false,
-            label: IPostColumnLabels.CommentCount
         },
         {
             key: IPostColumnKeys.IsEdited,

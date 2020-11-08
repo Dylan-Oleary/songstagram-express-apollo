@@ -6,7 +6,6 @@ import {
     ICreatePostValues,
     IPostColumnKeys,
     IPostColumnLabels,
-    IPostListRecord,
     IPostRecord,
     PostService
 } from "../Post";
@@ -14,7 +13,6 @@ import { IUserColumnKeys, IUserRecord, UserService } from "../User";
 
 describe("Post Service", () => {
     const pk = "postNo";
-    const tableName = "posts";
     const postRecordKeys = Object.values(IPostColumnKeys);
     const postService = new PostService(dbConnection);
     const userService = new UserService(dbConnection);
@@ -243,19 +241,6 @@ describe("Post Service", () => {
                 expect(postRecord[IPostColumnKeys.SpotifyTrackID]).toEqual(
                     submission[IPostColumnKeys.SpotifyTrackID]
                 );
-            });
-        });
-
-        [
-            { key: IPostColumnKeys.CommentCount, label: "comment" },
-            { key: IPostColumnKeys.LikeCount, label: "like" }
-        ].forEach(({ key, label }) => {
-            test(`successfully creates a post with the correct ${label} count`, () => {
-                return postService
-                    .createPost(buildValidSubmission(user.userNo))
-                    .then((postRecord) => {
-                        expect(postRecord[key]).toEqual(0);
-                    });
             });
         });
 

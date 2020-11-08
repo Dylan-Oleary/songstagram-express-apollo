@@ -23,9 +23,6 @@ describe("User Service", () => {
         "username",
         "email",
         "profilePicture",
-        "postCount",
-        "followerCount",
-        "followingCount",
         "isDeleted",
         "isBanned",
         "lastLoginDate",
@@ -872,16 +869,6 @@ describe("User Service", () => {
                 });
 
                 newUser = userRecord;
-            });
-        });
-
-        [
-            { key: "followerCount", label: "follower" },
-            { key: "followingCount", label: "following" },
-            { key: "postCount", label: "post" }
-        ].forEach(({ key, label }) => {
-            test(`successfully creates a user with the correct ${label} count`, () => {
-                expect(newUser[key]).toEqual(0);
             });
         });
 

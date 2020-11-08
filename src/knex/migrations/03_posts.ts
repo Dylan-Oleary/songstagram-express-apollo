@@ -10,9 +10,6 @@ exports.up = (knex: Knex): Promise<any> =>
         table.string("body", 2500).notNullable().defaultTo("");
         table.string("spotifyTrackId").notNullable();
 
-        table.integer("likeCount").notNullable().unsigned().defaultTo(0);
-        table.integer("commentCount").notNullable().unsigned().defaultTo(0);
-
         table.boolean("isEdited").defaultTo(false);
         table.boolean("isDeleted").defaultTo(false);
 
