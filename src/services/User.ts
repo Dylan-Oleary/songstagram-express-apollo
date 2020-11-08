@@ -482,7 +482,7 @@ class UserService extends BaseService {
 
         return super.validateRecordNo(userNo, this.pk).then(() => {
             return this.dbConnection(this.table)
-                .update(cleanSubmission)
+                .update({ ...cleanSubmission, lastUpdated: this.dbConnection.fn.now() })
                 .where(this.pk, userNo)
                 .then(() => {
                     return this.getUser(userNo);
@@ -535,7 +535,7 @@ class UserService extends BaseService {
         return super.validateRecordNo(userNo, this.pk).then(() => {
             return this.getUser(userNo).then((userRecord: IUserRecord) => {
                 return this.dbConnection(this.table)
-                    .update({ isDeleted: true })
+                    .update({ isDeleted: true, lastUpdated: this.dbConnection.fn.now() })
                     .where(this.pk, userRecord.userNo)
                     .then(() => true);
             });
@@ -551,7 +551,7 @@ class UserService extends BaseService {
         return super.validateRecordNo(userNo, this.pk).then(() => {
             return this.getUser(userNo).then((userRecord: IUserRecord) => {
                 return this.dbConnection(this.table)
-                    .update({ isBanned: true })
+                    .update({ isBanned: true, lastUpdated: this.dbConnection.fn.now() })
                     .where(this.pk, userRecord.userNo)
                     .then(() => true);
             });
@@ -759,7 +759,10 @@ class UserService extends BaseService {
                             return this.dbConnection(this.table)
                                 .first("*")
                                 .where(this.pk, userNo)
-                                .update({ password: hashedPassword });
+                                .update({
+                                    password: hashedPassword,
+                                    lastUpdated: this.dbConnection.fn.now()
+                                });
                         }
                     );
                 });
