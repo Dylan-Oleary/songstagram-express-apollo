@@ -376,6 +376,22 @@ class FollowService extends BaseService {
                 });
         });
     }
+
+    /**
+     * Performs a hard delete on a follow record
+     *
+     * @param followNo The follow number used to find the correct record
+     */
+    deleteFollow(followNo: number): Promise<boolean> {
+        return super.validateRecordNo(followNo, this.pk).then(() => {
+            return this.getFollow(followNo).then((followRecord: IFollowRecord) => {
+                return this.dbConnection(this.table)
+                    .del()
+                    .where(this.pk, followRecord[this.pk])
+                    .then(() => true);
+            });
+        });
+    }
 }
 
 export default FollowService;
