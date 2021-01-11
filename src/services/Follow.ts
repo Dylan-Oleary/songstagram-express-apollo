@@ -9,7 +9,7 @@ import {
     IPagination
 } from "./Base";
 import { IUserColumnKeys, UserService } from "./User";
-import { IFormValidation, validateSubmission } from "~lib/validateSubmission";
+import { IFormValidation, validateSubmission } from "../lib/validateSubmission";
 
 export interface IFollowRecord {
     followNo: number;
@@ -75,6 +75,9 @@ class FollowService extends BaseService {
             isSelectable: true,
             isSearchable: false,
             isSortable: true,
+            filterOptions: {
+                validConditions: [FilterCondition.Equal]
+            },
             isRequiredOnCreate: true,
             canEdit: false,
             label: IFollowColumnLabels.FollowerUserNo
@@ -84,6 +87,9 @@ class FollowService extends BaseService {
             isSelectable: true,
             isSearchable: false,
             isSortable: true,
+            filterOptions: {
+                validConditions: [FilterCondition.Equal]
+            },
             isRequiredOnCreate: true,
             canEdit: false,
             label: IFollowColumnLabels.UserNo
@@ -173,9 +179,17 @@ class FollowService extends BaseService {
         if (submissionErrors) return Promise.reject(submissionErrors);
 
         if (Boolean(followSubmission.isFollowing)) {
-            cleanSubmission = { isFollowing: true, followDate: this.dbConnection.fn.now() };
+            cleanSubmission = {
+                ...cleanSubmission,
+                isFollowing: true,
+                followDate: this.dbConnection.fn.now()
+            };
         } else {
-            cleanSubmission = { isFollowing: false, unfollowDate: this.dbConnection.fn.now() };
+            cleanSubmission = {
+                ...cleanSubmission,
+                isFollowing: false,
+                unfollowDate: this.dbConnection.fn.now()
+            };
         }
 
         return super.validateRecordNo(followNo, this.pk).then(() => {
@@ -216,7 +230,7 @@ class FollowService extends BaseService {
             userService.getUser(followerUserNo),
             userService.getUser(userToFollowNo)
         ]).then(async ([follower, userToFollow]) => {
-            for (let user of [follower, userToFollow]) {
+            for (const user of [follower, userToFollow]) {
                 if (Boolean(user.isDeleted)) {
                     return Promise.reject({
                         statusCode: 403,
