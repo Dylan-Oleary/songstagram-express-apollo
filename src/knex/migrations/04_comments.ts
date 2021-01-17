@@ -13,10 +13,7 @@ exports.up = (knex: Knex): Promise<any> =>
         table.integer("postNo").notNullable().unsigned();
         table.foreign("postNo").references("posts.postNo");
 
-        table.string("body", 300).notNullable().defaultTo("");
-
-        table.integer("likeCount").notNullable().unsigned().defaultTo(0);
-        table.integer("repliesCount").notNullable().unsigned().defaultTo(0);
+        table.string("body", 500).notNullable().defaultTo("");
 
         table.boolean("isDeleted").defaultTo(false);
         table.dateTime("createdDate").notNullable().defaultTo(knex.fn.now());

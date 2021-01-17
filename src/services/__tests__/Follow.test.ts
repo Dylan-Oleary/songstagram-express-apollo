@@ -396,4 +396,4 @@ describe("Follow Service", () => {
                 });
         });
     }); // close describe("deleteFollow")
-};); // close describe("Follow Service")
+}); // close describe("Follow Service")

@@ -153,13 +153,6 @@ class FollowService extends BaseService {
             .insert(newFollow)
             .then((record) => {
                 return this.getFollow(record[0]);
-            })
-            .catch((error) => {
-                return Promise.reject({
-                    statusCode: error.statusCode || 500,
-                    message: error.message || "Internal Server Error",
-                    details: error.details || []
-                });
             });
     }
 
@@ -201,13 +194,6 @@ class FollowService extends BaseService {
                 .where(this.pk, followNo)
                 .then(() => {
                     return this.getFollow(followNo);
-                })
-                .catch((error) => {
-                    return Promise.reject({
-                        statusCode: error.statusCode || 500,
-                        message: error.message || "Internal Server Error",
-                        details: error.details || []
-                    });
                 });
         });
     }
@@ -298,26 +284,14 @@ class FollowService extends BaseService {
         return Promise.all([
             super.getList(this.table, this.pk, this.tableColumns, options),
             super.getCount(this.table, this.pk, this.tableColumns, options.where)
-        ])
-            .then(([recordSet, count]) => {
-                const pagination = super.buildPagination(
-                    count,
-                    options.pageNo,
-                    options.itemsPerPage
-                );
+        ]).then(([recordSet, count]) => {
+            const pagination = super.buildPagination(count, options.pageNo, options.itemsPerPage);
 
-                return {
-                    data: recordSet || [],
-                    pagination
-                };
-            })
-            .catch((error) => {
-                return Promise.reject({
-                    statusCode: error.statusCode || 500,
-                    message: error.message || "Internal Server Error",
-                    details: error.details || []
-                });
-            });
+            return {
+                data: recordSet || [],
+                pagination
+            };
+        });
     }
 
     /**
@@ -374,20 +348,18 @@ class FollowService extends BaseService {
      */
     getFollowingCount(userNo: number): Promise<number> {
         return super.validateRecordNo(userNo, IUserColumnKeys.UserNo).then(() => {
-            return new FollowService(this.dbConnection)
-                .getFollowList({
-                    where: {
-                        isFollowing: {
-                            value: 1
-                        },
-                        followerUserNo: {
-                            value: userNo
-                        }
+            return this.getFollowList({
+                where: {
+                    isFollowing: {
+                        value: 1
+                    },
+                    followerUserNo: {
+                        value: userNo
                     }
-                })
-                .then(({ pagination }) => {
-                    return pagination.totalRecords;
-                });
+                }
+            }).then(({ pagination }) => {
+                return pagination.totalRecords;
+            });
         });
     }
 
