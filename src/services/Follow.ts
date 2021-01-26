@@ -57,6 +57,11 @@ export interface IFollowColumnDefinition extends IColumnDefinition {
     label: IFollowColumnLabels;
 }
 
+/**
+ * Service used to manage follows
+ *
+ * @param dbConnection Knex connection used to read/write to the database
+ */
 class FollowService extends BaseService {
     private readonly pk = "followNo";
     private readonly table = "follows";
@@ -271,7 +276,11 @@ class FollowService extends BaseService {
      */
     getFollowList(queryOptions: IListQueryOptions = {}): Promise<IFollowListRecord> {
         const defaultOptions = {
-            where: {},
+            where: {
+                isFollowing: {
+                    value: 1
+                }
+            },
             itemsPerPage: 10,
             pageNo: 1,
             orderBy: {
@@ -327,9 +336,6 @@ class FollowService extends BaseService {
             return new FollowService(this.dbConnection)
                 .getFollowList({
                     where: {
-                        isFollowing: {
-                            value: 1
-                        },
                         userNo: {
                             value: userNo
                         }
@@ -350,9 +356,6 @@ class FollowService extends BaseService {
         return super.validateRecordNo(userNo, IUserColumnKeys.UserNo).then(() => {
             return this.getFollowList({
                 where: {
-                    isFollowing: {
-                        value: 1
-                    },
                     followerUserNo: {
                         value: userNo
                     }

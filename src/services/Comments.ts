@@ -16,7 +16,7 @@ export interface ICommentRecord {
 }
 
 export interface ICommentListRecord {
-    data: ICommentListRecord[];
+    data: ICommentRecord[];
     pagination: IPagination;
 }
 
