@@ -1,0 +1,8 @@
+{
+  "includeVersion": true,
+  "entryPoints": ["src/services/index.ts"],
+  "exclude": ["**/node_modules/**", "*.test.ts", "**/knex/*"],
+  "name": "Songstagram API",
+  "readme": "./README.md",
+  "out": "docs"
+}

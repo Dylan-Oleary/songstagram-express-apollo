@@ -11,6 +11,8 @@
     "build:watch": "tsc -p tsconfig.json --watch",
     "clean": "rm -fr build",
     "dev": "yarn build && concurrently -n TypeScript,Server -c cyan,yellow \"yarn build:watch\" \"yarn start:dev\"",
+    "docs:build": "rm -fr ./docs && yarn build && typedoc",
+    "docs:rebuild": "typedoc",
     "lint": "eslint . && echo '\n\nLint Complete - No Errors\n\n'",
     "knex:migrate": "knex migrate:latest --knexfile ./src/knex/knexfile.ts",
     "knex:rollback": "knex migrate:rollback --knexfile ./src/knex/knexfile.ts",
@@ -74,6 +76,7 @@
     "sqlite3": "^5.0.0",
     "ts-jest": "^26.3.0",
     "ts-node": "^9.0.0",
+    "typedoc": "^0.20.19",
     "typescript": "^4.0.2"
   }
 }
