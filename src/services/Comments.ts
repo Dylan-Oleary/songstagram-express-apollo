@@ -1,7 +1,13 @@
 import extend from "extend";
 import knex from "knex";
 
-import { BaseService, IColumnDefinition, IListQueryOptions, IPagination } from "./Base";
+import {
+    BaseService,
+    FilterCondition,
+    IColumnDefinition,
+    IListQueryOptions,
+    IPagination
+} from "./Base";
 import { PostService } from "./Post";
 import { IFormValidation, validateSubmission } from "../lib/validateSubmission";
 
@@ -61,6 +67,9 @@ class CommentsService extends BaseService {
             isSelectable: true,
             isSearchable: false,
             isSortable: true,
+            filterOptions: {
+                validConditions: [FilterCondition.Equal]
+            },
             isRequiredOnCreate: false,
             canEdit: false,
             label: ICommentColumnLabels.CommentNo
@@ -70,6 +79,9 @@ class CommentsService extends BaseService {
             isSelectable: true,
             isSearchable: false,
             isSortable: true,
+            filterOptions: {
+                validConditions: [FilterCondition.Equal]
+            },
             isRequiredOnCreate: false,
             canEdit: false,
             label: ICommentColumnLabels.ParentCommentNo
@@ -79,6 +91,9 @@ class CommentsService extends BaseService {
             isSelectable: true,
             isSearchable: false,
             isSortable: true,
+            filterOptions: {
+                validConditions: [FilterCondition.Equal]
+            },
             isRequiredOnCreate: true,
             canEdit: false,
             label: ICommentColumnLabels.UserNo
@@ -88,6 +103,9 @@ class CommentsService extends BaseService {
             isSelectable: true,
             isSearchable: false,
             isSortable: true,
+            filterOptions: {
+                validConditions: [FilterCondition.Equal]
+            },
             isRequiredOnCreate: true,
             canEdit: false,
             label: ICommentColumnLabels.PostNo
@@ -116,6 +134,9 @@ class CommentsService extends BaseService {
             isSearchable: false,
             isSortable: false,
             isRequiredOnCreate: false,
+            filterOptions: {
+                validConditions: [FilterCondition.Equal]
+            },
             canEdit: false,
             label: ICommentColumnLabels.IsDeleted
         },

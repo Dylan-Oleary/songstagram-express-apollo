@@ -1,7 +1,13 @@
 import extend from "extend";
 import knex from "knex";
 
-import { BaseService, IColumnDefinition, IListQueryOptions, IPagination } from "./Base";
+import {
+    BaseService,
+    FilterCondition,
+    IColumnDefinition,
+    IListQueryOptions,
+    IPagination
+} from "./Base";
 import { CommentsService, ICommentColumnKeys, ICommentRecord } from "./Comments";
 import { IPostColumnKeys, IPostRecord, PostService } from "./Post";
 import { IUserRecord, UserService } from "./User";
@@ -72,6 +78,9 @@ class LikesService extends BaseService {
             isSelectable: true,
             isSearchable: false,
             isSortable: true,
+            filterOptions: {
+                validConditions: [FilterCondition.Equal]
+            },
             isRequiredOnCreate: false,
             canEdit: false,
             label: ILikeColumnLabels.LikeNo
@@ -81,6 +90,9 @@ class LikesService extends BaseService {
             isSelectable: true,
             isSearchable: false,
             isSortable: true,
+            filterOptions: {
+                validConditions: [FilterCondition.Equal]
+            },
             isRequiredOnCreate: true,
             canEdit: false,
             label: ILikeColumnLabels.UserNo
@@ -90,6 +102,9 @@ class LikesService extends BaseService {
             isSelectable: true,
             isSearchable: false,
             isSortable: false,
+            filterOptions: {
+                validConditions: [FilterCondition.Equal]
+            },
             isRequiredOnCreate: true,
             canEdit: false,
             label: ILikeColumnLabels.ReferenceTable,
@@ -110,6 +125,9 @@ class LikesService extends BaseService {
             isSelectable: true,
             isSearchable: false,
             isSortable: true,
+            filterOptions: {
+                validConditions: [FilterCondition.Equal]
+            },
             isRequiredOnCreate: true,
             canEdit: false,
             label: ILikeColumnLabels.ReferenceNo,
@@ -126,7 +144,10 @@ class LikesService extends BaseService {
             isSelectable: true,
             isSearchable: false,
             isSortable: false,
-            isRequiredOnCreate: true,
+            filterOptions: {
+                validConditions: [FilterCondition.Equal]
+            },
+            isRequiredOnCreate: false,
             canEdit: true,
             label: ILikeColumnLabels.IsActive
         },
@@ -228,7 +249,7 @@ class LikesService extends BaseService {
      *
      * @param queryOptions Additional filters to query by
      */
-    getLikeList(queryOptions: IListQueryOptions): Promise<ILikeListRecord> {
+    getLikeList(queryOptions: IListQueryOptions = {}): Promise<ILikeListRecord> {
         const defaultOptions = {
             where: {
                 isActive: {
@@ -269,7 +290,7 @@ class LikesService extends BaseService {
         userNo: number,
         referenceNo: number,
         referenceTable: LikeReferenceTable,
-        isLike: boolean
+        isLike: boolean = true
     ): Promise<ILikeRecord> {
         const commentsService = new CommentsService(this.dbConnection);
         const postService = new PostService(this.dbConnection);

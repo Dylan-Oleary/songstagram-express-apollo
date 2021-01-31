@@ -28,7 +28,7 @@ export const validateSubmission: (
     });
 
     validation.forEach(({ check, isRequired, key, label }) => {
-        if (submission[key]) {
+        if (submission[key] !== undefined) {
             if (isRequired && String(submission[key]).trim().length === 0)
                 submissionErrors.push(`${label} is a required field`);
 

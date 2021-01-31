@@ -71,6 +71,9 @@ class FollowService extends BaseService {
             isSelectable: true,
             isSearchable: false,
             isSortable: true,
+            filterOptions: {
+                validConditions: [FilterCondition.Equal]
+            },
             isRequiredOnCreate: false,
             canEdit: false,
             label: IFollowColumnLabels.FollowNo
