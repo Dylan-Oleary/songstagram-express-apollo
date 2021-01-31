@@ -9,7 +9,13 @@ import {
     IPostRecord,
     PostService
 } from "~services/Post";
-import { IUserColumnKeys, IUserRecord, UserService } from "~services/User";
+import {
+    ICreateUserValues,
+    IUpdateUserValues,
+    IUserColumnKeys,
+    IUserRecord,
+    UserService
+} from "~services/User";
 
 describe("Post Service", () => {
     const pk = "postNo";
@@ -29,6 +35,35 @@ describe("Post Service", () => {
             [IPostColumnKeys.SpotifyTrackID]: faker.random.uuid(),
             [IPostColumnKeys.Body]: faker.lorem.sentences(Math.floor(Math.random() * 3) + 1)
         };
+    };
+
+    /**
+     * Builds a valid user submission
+     *
+     * @param username A valid username
+     * @param deletePasswords Determines whether or not to omit `password` & `confirmPassword` from the submission. This becomes useful when building submissions for both creating a user and updating a user
+     */
+    const buildValidUserSubmission: (
+        username: string,
+        deletePasswords?: boolean
+    ) => ICreateUserValues | IUpdateUserValues = (username, deletePasswords = false) => {
+        const submission: ICreateUserValues = {
+            [IUserColumnKeys.FirstName]: faker.name.firstName(),
+            [IUserColumnKeys.LastName]: faker.name.lastName(),
+            [IUserColumnKeys.Username]: username,
+            [IUserColumnKeys.Email]: faker.internet.email(),
+            [IUserColumnKeys.Password]: "M0N3y!",
+            [IUserColumnKeys.ConfirmPassword]: "M0N3y!"
+        };
+
+        if (deletePasswords) {
+            //@ts-ignore - Delete passwords to build valid submission
+            delete submission[IUserColumnKeys.Password];
+            //@ts-ignore - Delete passwords to build valid submission
+            delete submission[IUserColumnKeys.ConfirmPassword];
+        }
+
+        return submission;
     };
 
     beforeAll(async (done) => {
@@ -308,20 +343,24 @@ describe("Post Service", () => {
 
     describe("updatePost", () => {
         test("successfully updates a post", () => {
-            const user = users[Math.floor(Math.random() * users.length)];
-            const postSubmission = buildValidSubmission(user.userNo);
-            const updatedPost = { body: "My first post sucked" };
+            return userService
+                .createUser(buildValidUserSubmission("LAAAAAYLAAA") as ICreateUserValues)
+                .then((user) => {
+                    const postSubmission = buildValidSubmission(user.userNo);
 
-            return postService.createPost(postSubmission).then((post) => {
-                return postService.updatePost(post[pk], updatedPost).then((postRecord) => {
-                    expect(postRecord).toEqual(
-                        expect.objectContaining({
-                            postNo: post[pk],
-                            ...updatedPost
-                        })
-                    );
+                    return postService.createPost(postSubmission).then((post) => {
+                        const updatedPost = { body: "My first post sucked" };
+
+                        return postService.updatePost(post[pk], updatedPost).then((postRecord) => {
+                            expect(postRecord).toEqual(
+                                expect.objectContaining({
+                                    postNo: post[pk],
+                                    ...updatedPost
+                                })
+                            );
+                        });
+                    });
                 });
-            });
         });
 
         test("throws a not found error (404) if no post is found", () => {
