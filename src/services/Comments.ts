@@ -183,7 +183,7 @@ class CommentsService extends BaseService {
                 ? this.getComment(newComment.parentCommentNo)
                 : Promise.resolve(null)
         ]).then(([postRecord]) => {
-            if (Boolean(postRecord.isDeleted)) {
+            if (postRecord.isDeleted) {
                 throw {
                     statusCode: 403,
                     message: "Forbidden",
@@ -219,7 +219,7 @@ class CommentsService extends BaseService {
                             ]
                         };
 
-                    return record;
+                    return super.cleanRecord<ICommentRecord>(record);
                 });
         });
     }
@@ -246,9 +246,12 @@ class CommentsService extends BaseService {
             super.getCount(this.table, this.pk, this.tableColumns, options.where)
         ]).then(([recordSet, count]) => {
             const pagination = super.buildPagination(count, options.pageNo, options.itemsPerPage);
+            const cleanedRecordSet = (recordSet || []).map((record) =>
+                super.cleanRecord<ICommentRecord>(record)
+            );
 
             return {
-                data: recordSet || [],
+                data: cleanedRecordSet || [],
                 pagination
             };
         });

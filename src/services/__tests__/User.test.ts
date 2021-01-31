@@ -776,8 +776,8 @@ describe("User Service", () => {
                     expect(users).toContainEqual(
                         expect.objectContaining({
                             username: user.username,
-                            isDeleted: 0,
-                            isBanned: 0
+                            isDeleted: false,
+                            isBanned: false
                         })
                     );
                     expect(users.length).toBeGreaterThan(0);
@@ -798,8 +798,8 @@ describe("User Service", () => {
                             expect.objectContaining({
                                 //@ts-ignore - Enum columns used to index records
                                 [validColumn]: user[validColumn],
-                                isDeleted: 0,
-                                isBanned: 0
+                                isDeleted: false,
+                                isBanned: false
                             })
                         );
                         expect(users.length).toBeGreaterThan(0);
@@ -820,8 +820,8 @@ describe("User Service", () => {
                     expect(users).toContainEqual(
                         expect.objectContaining({
                             [IUserColumnKeys.Username]: user[IUserColumnKeys.Username],
-                            isDeleted: 0,
-                            isBanned: 0
+                            isDeleted: false,
+                            isBanned: false
                         })
                     );
                     expect(users.length).toBeGreaterThan(0);
@@ -839,8 +839,8 @@ describe("User Service", () => {
                                 expect.objectContaining({
                                     //@ts-ignore - Enum columns used to index records
                                     [column]: user[column],
-                                    isDeleted: 0,
-                                    isBanned: 0
+                                    isDeleted: false,
+                                    isBanned: false
                                 })
                             );
                             expect(users.length).toBeGreaterThan(0);
@@ -1041,7 +1041,7 @@ describe("User Service", () => {
                 return userService.getUser(newUser.userNo).then((userRecord) => {
                     expect(response).toEqual(true);
                     expect(userRecord.userNo).toEqual(newUser.userNo);
-                    expect(userRecord.isDeleted).toEqual(1);
+                    expect(userRecord.isDeleted).toEqual(true);
                 });
             });
         });
@@ -1071,7 +1071,7 @@ describe("User Service", () => {
                 return userService.getUser(newUser.userNo).then((userRecord) => {
                     expect(response).toEqual(true);
                     expect(userRecord.userNo).toEqual(newUser.userNo);
-                    expect(userRecord.isBanned).toEqual(1);
+                    expect(userRecord.isBanned).toEqual(true);
                 });
             });
         });

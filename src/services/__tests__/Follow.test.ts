@@ -220,7 +220,7 @@ describe("Follow Service", () => {
                     expect(record[IFollowColumnKeys.FollowNo]).toEqual(
                         followRecord[IFollowColumnKeys.FollowNo]
                     );
-                    expect(Boolean(record[IFollowColumnKeys.IsFollowing])).toEqual(false);
+                    expect(record[IFollowColumnKeys.IsFollowing]).toEqual(false);
                 });
         });
 
@@ -231,7 +231,7 @@ describe("Follow Service", () => {
                     expect(record[IFollowColumnKeys.FollowNo]).toEqual(
                         followRecord[IFollowColumnKeys.FollowNo]
                     );
-                    expect(Boolean(record[IFollowColumnKeys.IsFollowing])).toEqual(true);
+                    expect(record[IFollowColumnKeys.IsFollowing]).toEqual(true);
                 });
         });
     }); // close describe("updateFollow")
@@ -314,9 +314,7 @@ describe("Follow Service", () => {
                         false
                     )
                     .then((updatedRecord) => {
-                        expect(Boolean(updatedRecord[IFollowColumnKeys.IsFollowing])).toEqual(
-                            false
-                        );
+                        expect(updatedRecord[IFollowColumnKeys.IsFollowing]).toEqual(false);
                         expect(updatedRecord[IFollowColumnKeys.FollowerUserNo]).toEqual(
                             record[IFollowColumnKeys.FollowerUserNo]
                         );
@@ -329,7 +327,7 @@ describe("Follow Service", () => {
 
         test("successfully creates a follow record when a follow record does not exist", () => {
             return followService.followRequest(10, 1).then((updatedRecord) => {
-                expect(Boolean(updatedRecord[IFollowColumnKeys.IsFollowing])).toEqual(true);
+                expect(updatedRecord[IFollowColumnKeys.IsFollowing]).toEqual(true);
                 expect(updatedRecord[IFollowColumnKeys.FollowerUserNo]).toEqual(10);
                 expect(updatedRecord[IFollowColumnKeys.UserNo]).toEqual(1);
             });

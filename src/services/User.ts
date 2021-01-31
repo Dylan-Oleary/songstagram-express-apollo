@@ -515,7 +515,7 @@ class UserService extends BaseService {
 
                     delete record.password;
 
-                    return record;
+                    return super.cleanRecord<IUserRecord>(record);
                 });
         });
     }
@@ -529,10 +529,10 @@ class UserService extends BaseService {
         const defaultOptions = {
             where: {
                 isDeleted: {
-                    value: 0
+                    value: false
                 },
                 isBanned: {
-                    value: 0
+                    value: false
                 }
             },
             itemsPerPage: 10,
@@ -554,9 +554,12 @@ class UserService extends BaseService {
                     options.pageNo,
                     options.itemsPerPage
                 );
+                const cleanedRecordSet = (recordSet || []).map((record) =>
+                    super.cleanRecord(record)
+                );
 
                 return {
-                    data: recordSet || [],
+                    data: cleanedRecordSet || [],
                     pagination
                 };
             })
@@ -591,10 +594,10 @@ class UserService extends BaseService {
         const defaultOptions = {
             where: {
                 isDeleted: {
-                    value: 0
+                    value: false
                 },
                 isBanned: {
-                    value: 0
+                    value: false
                 }
             },
             itemsPerPage: 10,
@@ -651,6 +654,9 @@ class UserService extends BaseService {
             .then(() => {
                 return query;
             })
+            .then((results) => {
+                return results.map((record) => super.cleanRecord<IUserRecord>(record));
+            })
             .catch((error) => {
                 return Promise.reject({
                     statusCode: error.statusCode || 500,
@@ -689,8 +695,8 @@ class UserService extends BaseService {
                             details: [`User with a ${this.pk} of ${userNo} could not be found`]
                         };
 
-                    return this.comparePasswords(currentPassword, userRecord.password!).then(
-                        async () => {
+                    return this.comparePasswords(currentPassword, userRecord.password!)
+                        .then(async () => {
                             const hashedPassword = await this.hashPassword(newPassword);
 
                             return this.dbConnection(this.table)
@@ -700,8 +706,10 @@ class UserService extends BaseService {
                                     password: hashedPassword,
                                     lastUpdated: this.dbConnection.fn.now()
                                 });
-                        }
-                    );
+                        })
+                        .then(() => {
+                            return this.getUser(userNo);
+                        });
                 });
         });
     }

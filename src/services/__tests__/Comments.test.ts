@@ -479,7 +479,7 @@ describe("Comments Service", () => {
                 return commentService.deleteComment(record[pk]).then((deleteResponse) => {
                     return commentService.getComment(record[pk]).then((deletedRecord) => {
                         expect(deleteResponse).toEqual(true);
-                        expect(Boolean(deletedRecord.isDeleted)).toEqual(true);
+                        expect(deletedRecord.isDeleted).toEqual(true);
                     });
                 });
             });

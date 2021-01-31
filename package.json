@@ -18,9 +18,9 @@
     "knex:rollback": "knex migrate:rollback --knexfile ./src/knex/knexfile.ts",
     "knex:seed": "knex seed:run --knexfile ./src/knex/knexfile.ts",
     "start:dev": "nodemon ./build/server.js",
-    "test": "jest --verbose --runInBand",
-    "test:coverage": "jest --verbose --coverage --runInBand",
-    "test:watch": "jest --verbose --watch --runInBand"
+    "test": "jest --verbose",
+    "test:coverage": "jest --verbose --coverage",
+    "test:watch": "jest --verbose --watch"
   },
   "husky": {
     "hooks": {

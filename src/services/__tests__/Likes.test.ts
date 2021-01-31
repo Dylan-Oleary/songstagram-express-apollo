@@ -353,7 +353,7 @@ describe("Likes Service", () => {
                         [ILikeColumnKeys.ReferenceTable]: LikeReferenceTable.Posts,
                         [ILikeColumnKeys.ReferenceNo]: postNo,
                         [ILikeColumnKeys.UserNo]: userNo,
-                        [ILikeColumnKeys.IsActive]: 1
+                        [ILikeColumnKeys.IsActive]: true
                     })
                 );
             });
@@ -371,7 +371,7 @@ describe("Likes Service", () => {
                         [ILikeColumnKeys.ReferenceTable]: LikeReferenceTable.Comments,
                         [ILikeColumnKeys.ReferenceNo]: commentNo,
                         [ILikeColumnKeys.UserNo]: userNo,
-                        [ILikeColumnKeys.IsActive]: 1
+                        [ILikeColumnKeys.IsActive]: true
                     })
                 );
             });
@@ -397,7 +397,7 @@ describe("Likes Service", () => {
                     expect(updatedRecord[ILikeColumnKeys.LikeNo]).toEqual(
                         originalRecord[ILikeColumnKeys.LikeNo]
                     );
-                    expect(updatedRecord[ILikeColumnKeys.IsActive]).toEqual(0);
+                    expect(updatedRecord[ILikeColumnKeys.IsActive]).toEqual(false);
                 });
         });
     }); // close describe("updateLike")
@@ -500,7 +500,7 @@ describe("Likes Service", () => {
                 .then((record) => {
                     expect(record.userNo).toEqual(userNo);
                     expect(record.referenceNo).toEqual(postNo);
-                    expect(record.isActive).toEqual(1);
+                    expect(record.isActive).toEqual(true);
                 });
         });
 
@@ -523,7 +523,7 @@ describe("Likes Service", () => {
                 .then((record) => {
                     expect(record.userNo).toEqual(user.userNo);
                     expect(record.referenceNo).toEqual(postNo);
-                    expect(record.isActive).toEqual(0);
+                    expect(record.isActive).toEqual(false);
                 });
         });
 
@@ -536,7 +536,7 @@ describe("Likes Service", () => {
                 .then((record) => {
                     expect(record.userNo).toEqual(userNo);
                     expect(record.referenceNo).toEqual(commentNo);
-                    expect(record.isActive).toEqual(1);
+                    expect(record.isActive).toEqual(true);
                 });
         });
 
@@ -559,7 +559,7 @@ describe("Likes Service", () => {
                 .then((record) => {
                     expect(record.userNo).toEqual(user.userNo);
                     expect(record.referenceNo).toEqual(commentNo);
-                    expect(record.isActive).toEqual(0);
+                    expect(record.isActive).toEqual(false);
                 });
         });
 

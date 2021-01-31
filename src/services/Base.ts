@@ -352,6 +352,23 @@ class BaseService {
             }
         });
     }
+
+    /**
+     * Cleans a record coming back from the database
+     *
+     * @param record A record from the database
+     */
+    protected cleanRecord<T>(record: T): T {
+        for (const key of Object.keys(record)) {
+            //@ts-ignore
+            if (new RegExp("is[A-Za-z]+").test(key)) {
+                //@ts-ignore
+                record[key] = Boolean(record[key]);
+            }
+        }
+
+        return record;
+    }
 }
 
 export default BaseService;

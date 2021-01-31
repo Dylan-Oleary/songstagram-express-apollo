@@ -239,7 +239,7 @@ class LikesService extends BaseService {
                             details: [`Like with a ${this.pk} of ${likeNo} could not be found`]
                         };
 
-                    return record;
+                    return super.cleanRecord<ILikeRecord>(record);
                 });
         });
     }
@@ -253,7 +253,7 @@ class LikesService extends BaseService {
         const defaultOptions = {
             where: {
                 isActive: {
-                    value: 1
+                    value: true
                 }
             },
             itemsPerPage: 10,
@@ -270,9 +270,12 @@ class LikesService extends BaseService {
             super.getCount(this.table, this.pk, this.tableColumns, options.where)
         ]).then(([recordSet, count]) => {
             const pagination = super.buildPagination(count, options.pageNo, options.itemsPerPage);
+            const cleanedRecordSet = (recordSet || []).map((record) =>
+                super.cleanRecord<ILikeRecord>(record)
+            );
 
             return {
-                data: recordSet || [],
+                data: cleanedRecordSet || [],
                 pagination
             };
         });
@@ -308,13 +311,13 @@ class LikesService extends BaseService {
             userService.getUser(userNo),
             referencePromise()
         ]).then(async ([requestUser, referenceRecord]) => {
-            if (Boolean(requestUser.isDeleted)) {
+            if (requestUser.isDeleted) {
                 return Promise.reject({
                     statusCode: 403,
                     message: "Forbidden",
                     details: [`User (userNo: ${requestUser.userNo}) has been deleted`]
                 });
-            } else if (Boolean(requestUser.isBanned)) {
+            } else if (requestUser.isBanned) {
                 return Promise.reject({
                     statusCode: 403,
                     message: "Forbidden",

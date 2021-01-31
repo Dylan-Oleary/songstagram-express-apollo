@@ -201,7 +201,7 @@ class PostService extends BaseService {
 
         const user = await new UserService(this.dbConnection).getUser(submission.userNo || 0);
 
-        if (Boolean(user.isDeleted) || Boolean(user.isBanned)) {
+        if (user.isDeleted || user.isBanned) {
             return Promise.reject({
                 statusCode: 403,
                 message: "Forbidden",
@@ -301,7 +301,7 @@ class PostService extends BaseService {
                             details: [`Post with a ${this.pk} of ${postNo} could not be found`]
                         };
 
-                    return record;
+                    return super.cleanRecord<IPostRecord>(record);
                 });
         });
     }
@@ -315,7 +315,7 @@ class PostService extends BaseService {
         const defaultOptions = {
             where: {
                 isDeleted: {
-                    value: 0
+                    value: false
                 }
             },
             itemsPerPage: 10,
@@ -337,9 +337,12 @@ class PostService extends BaseService {
                     options.pageNo,
                     options.itemsPerPage
                 );
+                const cleanedRecordSet = (recordSet || []).map((record) =>
+                    super.cleanRecord<IPostRecord>(record)
+                );
 
                 return {
-                    data: recordSet || [],
+                    data: cleanedRecordSet || [],
                     pagination
                 };
             })
@@ -361,7 +364,7 @@ class PostService extends BaseService {
         const defaultOptions = {
             where: {
                 isDeleted: {
-                    value: 0
+                    value: false
                 }
             }
         };

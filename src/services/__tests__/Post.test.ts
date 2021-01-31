@@ -288,7 +288,7 @@ describe("Post Service", () => {
 
         test("throws a forbidden error (403) if the user trying to create a post has been banned", async () => {
             //@ts-ignore
-            const userToBan = users.find((user) => user.isBanned === 0) as IUserRecord;
+            const userToBan = users.find((user) => !user.isBanned) as IUserRecord;
 
             await userService.banUser(userToBan.userNo);
 
@@ -307,31 +307,20 @@ describe("Post Service", () => {
     }); // close describe("createPost")
 
     describe("updatePost", () => {
-        let user: IUserRecord;
-        let submission: ICreatePostValues;
-        let post: IPostRecord;
-
-        beforeAll((done) => {
-            user = users[Math.floor(Math.random() * users.length)];
-            submission = buildValidSubmission(user.userNo);
-
-            return postService.createPost(submission).then((postRecord) => {
-                post = postRecord;
-
-                done();
-            });
-        });
-
         test("successfully updates a post", () => {
+            const user = users[Math.floor(Math.random() * users.length)];
+            const postSubmission = buildValidSubmission(user.userNo);
             const updatedPost = { body: "My first post sucked" };
 
-            return postService.updatePost(post[pk], updatedPost).then((postRecord) => {
-                expect(postRecord).toEqual(
-                    expect.objectContaining({
-                        postNo: post[pk],
-                        ...updatedPost
-                    })
-                );
+            return postService.createPost(postSubmission).then((post) => {
+                return postService.updatePost(post[pk], updatedPost).then((postRecord) => {
+                    expect(postRecord).toEqual(
+                        expect.objectContaining({
+                            postNo: post[pk],
+                            ...updatedPost
+                        })
+                    );
+                });
             });
         });
 
@@ -345,40 +334,6 @@ describe("Post Service", () => {
             });
         });
     }); // close describe("updatePost")
-
-    describe("deletePost", () => {
-        let user: IUserRecord;
-        let submission: ICreatePostValues;
-        let post: IPostRecord;
-
-        beforeAll(async (done) => {
-            user = users[Math.floor(Math.random() * users.length)];
-            submission = buildValidSubmission(user.userNo);
-            post = await postService.createPost(submission);
-
-            done();
-        });
-
-        test("successfully deletes a post", () => {
-            return postService.deletePost(post[pk]).then((response) => {
-                return postService.getPost(post[pk]).then((postRecord) => {
-                    expect(response).toEqual(true);
-                    expect(postRecord[pk]).toEqual(post[pk]);
-                    expect(postRecord.isDeleted).toEqual(1);
-                });
-            });
-        });
-
-        test("throws a not found error (404) if no post is found", () => {
-            return postService.deletePost(900).catch((error) => {
-                expect(error.statusCode).toEqual(404);
-                expect(error.message).toEqual("Not Found");
-                expect(error.details).toEqual(
-                    expect.arrayContaining([`Post with a ${pk} of 900 could not be found`])
-                );
-            });
-        });
-    }); // close describe("deletePost")
 
     describe("getPost", () => {
         let post: IPostRecord;
@@ -495,4 +450,31 @@ describe("Post Service", () => {
             });
         });
     }); // close describe("getPostCount")
+
+    describe("deletePost", () => {
+        test("successfully deletes a post", () => {
+            const user = users[Math.floor(Math.random() * users.length)];
+            const postSubmission = buildValidSubmission(user.userNo);
+
+            return postService.createPost(postSubmission).then((post) => {
+                return postService.deletePost(post[pk]).then((response) => {
+                    return postService.getPost(post[pk]).then((postRecord) => {
+                        expect(response).toEqual(true);
+                        expect(postRecord[pk]).toEqual(post[pk]);
+                        expect(postRecord.isDeleted).toEqual(true);
+                    });
+                });
+            });
+        });
+
+        test("throws a not found error (404) if no post is found", () => {
+            return postService.deletePost(900).catch((error) => {
+                expect(error.statusCode).toEqual(404);
+                expect(error.message).toEqual("Not Found");
+                expect(error.details).toEqual(
+                    expect.arrayContaining([`Post with a ${pk} of 900 could not be found`])
+                );
+            });
+        });
+    }); // close describe("deletePost")
 }); // close describe("Post Service")

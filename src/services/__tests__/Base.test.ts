@@ -595,4 +595,19 @@ describe("Base Service", () => {
             });
         });
     }); // close describe("validateRecordNo")
+
+    describe("cleanRecord", () => {
+        const record = {
+            isDeleted: 1,
+            username: "userW00T"
+        };
+
+        //@ts-ignore - Testing protected method
+        const cleanedRecord = baseService.cleanRecord(record);
+
+        expect(cleanedRecord).toEqual({
+            ...record,
+            isDeleted: true
+        });
+    }); // close describe("cleanRecord")
 }); // close describe("Base Service")

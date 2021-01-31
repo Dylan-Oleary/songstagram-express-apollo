@@ -225,7 +225,7 @@ class FollowService extends BaseService {
             userService.getUser(userToFollowNo)
         ]).then(async ([follower, userToFollow]) => {
             for (const user of [follower, userToFollow]) {
-                if (Boolean(user.isDeleted)) {
+                if (user.isDeleted) {
                     return Promise.reject({
                         statusCode: 403,
                         message: "Forbidden",
@@ -233,7 +233,7 @@ class FollowService extends BaseService {
                             `User (userNo: ${user.userNo}) has been deleted and cannot be updated`
                         ]
                     });
-                } else if (Boolean(user.isBanned)) {
+                } else if (user.isBanned) {
                     return Promise.reject({
                         statusCode: 403,
                         message: "Forbidden",
@@ -281,7 +281,7 @@ class FollowService extends BaseService {
         const defaultOptions = {
             where: {
                 isFollowing: {
-                    value: 1
+                    value: true
                 }
             },
             itemsPerPage: 10,
@@ -298,9 +298,12 @@ class FollowService extends BaseService {
             super.getCount(this.table, this.pk, this.tableColumns, options.where)
         ]).then(([recordSet, count]) => {
             const pagination = super.buildPagination(count, options.pageNo, options.itemsPerPage);
+            const cleanedRecordSet = (recordSet || []).map((record) =>
+                super.cleanRecord<IFollowRecord>(record)
+            );
 
             return {
-                data: recordSet || [],
+                data: cleanedRecordSet || [],
                 pagination
             };
         });
@@ -324,7 +327,7 @@ class FollowService extends BaseService {
                             details: [`Follow with a ${this.pk} of ${followNo} could not be found`]
                         };
 
-                    return record;
+                    return super.cleanRecord<IFollowRecord>(record);
                 });
         });
     }
