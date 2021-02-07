@@ -6,6 +6,8 @@ import { gql } from "apollo-server-express";
  * @see https://developer.spotify.com/documentation/web-api/reference/object-model/
  */
 const typeDefs = gql`
+    scalar DateTime
+
     union PagingItem = Track | Album | Artist
 
     enum AlbumGroup {

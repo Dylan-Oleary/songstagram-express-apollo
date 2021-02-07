@@ -6,6 +6,7 @@ import {
     BaseService,
     FilterCondition,
     IColumnDefinition,
+    IError,
     IListQueryOptions,
     IPagination
 } from "./Base";
@@ -748,6 +749,22 @@ class UserService extends BaseService {
                       });
             });
         });
+    }
+
+    /**
+     * Returns valid filter conditions for the passed column
+     *
+     * @param key The column name
+     */
+    public getColumnFilters(key: IUserColumnKeys): FilterCondition[] | Promise<IError> {
+        return super.getColumnFilters(key, this.tableColumns);
+    }
+
+    /**
+     * Returns an array of column names whose columns are sortable
+     */
+    public getSortableColumns(): IUserColumnKeys[] {
+        return this.tableColumns.filter((column) => column.isSortable).map((column) => column.key);
     }
 }
 

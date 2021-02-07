@@ -4,7 +4,7 @@ import express, { Express } from "express";
 import { ApolloServer } from "apollo-server-express";
 
 import { SPOTIFY_WEB_API_TOKEN } from "./config/constants";
-import { schema } from "./graphql";
+import { buildSchema } from "./graphql";
 import { initializeSpotify, testDatabaseConnection } from "./config";
 
 /**
@@ -27,7 +27,7 @@ const initializeApp: () => Express = () => {
              * Setup the Apollo GraphQL Server
              */
             new ApolloServer({
-                schema,
+                schema: buildSchema(app),
                 context: () => ({
                     spotifyWebApiToken: app.get(SPOTIFY_WEB_API_TOKEN)
                     // TODO: Authorize Application

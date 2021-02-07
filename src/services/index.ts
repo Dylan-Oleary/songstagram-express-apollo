@@ -1,3 +1,4 @@
+export * from "./Base";
 export * from "./Comments";
 export * from "./Follow";
 export * from "./Likes";

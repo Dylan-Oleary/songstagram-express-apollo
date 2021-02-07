@@ -60,6 +60,12 @@ export interface IPagination {
     totalRecords: number;
 }
 
+export interface IError {
+    statusCode: number;
+    message: string;
+    details: string[];
+}
+
 /**
  * Base service
  *
@@ -368,6 +374,35 @@ class BaseService {
         }
 
         return record;
+    }
+
+    /**
+     * Returns an array of valid filter conditions for the passed column
+     *
+     * @param key The column name to filter by
+     * @param tableColumns The service table columns
+     */
+    protected getColumnFilters(
+        key: string,
+        tableColumns: IColumnDefinition[]
+    ): FilterCondition[] | Promise<IError> {
+        const foundColumn = tableColumns.find((column) => key === column.key);
+
+        if (!foundColumn) {
+            return Promise.reject({
+                statusCode: 404,
+                message: "Not Found",
+                details: [`Column with key: ${key} could not be found`]
+            });
+        } else if (!foundColumn.filterOptions) {
+            return Promise.reject({
+                statusCode: 400,
+                message: "Bad Request",
+                details: [`Column with key: ${key} is not filterable`]
+            });
+        }
+
+        return Object.values(foundColumn.filterOptions.validConditions);
     }
 }
 
