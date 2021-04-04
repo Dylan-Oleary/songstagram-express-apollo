@@ -70,8 +70,8 @@ export interface ILikeColumnDefinition extends IColumnDefinition {
  * @param dbConnection Knex connection used to read/write to the database
  */
 class LikesService extends BaseService {
-    private readonly pk = ILikeColumnKeys.LikeNo;
-    private readonly table = "likes";
+    readonly pk = ILikeColumnKeys.LikeNo;
+    readonly table = "likes";
     private readonly tableColumns: ILikeColumnDefinition[] = [
         {
             key: ILikeColumnKeys.LikeNo,

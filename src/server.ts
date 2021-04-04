@@ -21,10 +21,13 @@ console.info("");
 console.info(`Environment: ${process.env.NODE_ENV}`);
 
 const envKeys = [
+    "ACCESS_TOKEN_EXPIRES_IN",
+    "ACCESS_TOKEN_SECRET",
     "ALLOWED_ORIGIN",
     "MYSQL_HOST",
     "MYSQL_PORT",
     "MYSQL_DATABASE",
+    "REFRESH_TOKEN_SECRET",
     "SESSION_SECRET",
     "SPOTIFY_CLIENT_ID",
     "SPOTIFY_CLIENT_SECRET",

@@ -17,7 +17,7 @@ const buildRecord: (username: string) => IUserKnexSeed = (username) => {
         [IUserColumnKeys.LastName]: faker.name.lastName(),
         [IUserColumnKeys.Username]: username,
         [IUserColumnKeys.Email]: faker.internet.email(),
-        [IUserColumnKeys.Password]: "M0N3y!"
+        [IUserColumnKeys.Password]: "$2b$10$ebJQnK5XrBFL4N7mxIaQZOCWiUiHkbdcNCA89vW.heb4lz.xmgyGi"
     };
 
     return submission;

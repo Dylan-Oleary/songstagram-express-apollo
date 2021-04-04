@@ -59,8 +59,8 @@ export interface ICommentColumnDefinition extends IColumnDefinition {
 }
 
 class CommentsService extends BaseService {
-    private readonly pk = ICommentColumnKeys.CommentNo;
-    private readonly table = "comments";
+    readonly pk = ICommentColumnKeys.CommentNo;
+    readonly table = "comments";
     private readonly tableColumns: ICommentColumnDefinition[] = [
         {
             key: ICommentColumnKeys.CommentNo,

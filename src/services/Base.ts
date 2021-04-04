@@ -60,7 +60,7 @@ export interface IPagination {
     totalRecords: number;
 }
 
-export interface IError {
+export interface IError extends Error {
     statusCode: number;
     message: string;
     details: string[];
@@ -112,7 +112,7 @@ class BaseService {
      * @param query An instance of the knex `QueryBuilder`
      * @param where Query options to be added to knex query
      */
-    protected buildWhereClause(query: QueryBuilder, where: IWhereClause) {
+    protected buildWhereClause(query: QueryBuilder, where: IWhereClause): QueryBuilder {
         const whereKeys = Object.keys(where) || [];
         const whereClauses: {
             column: string;
@@ -168,7 +168,10 @@ class BaseService {
      * @param tableColumns The table column definitions
      * @param where Query options to validate based upon column definitions
      */
-    protected validateWhereClause(tableColumns: IColumnDefinition[], where: IWhereClause) {
+    protected validateWhereClause(
+        tableColumns: IColumnDefinition[],
+        where: IWhereClause
+    ): Promise<void> {
         return new Promise((resolve, reject) => {
             if (Object.keys(where).length > 0) {
                 const filterableColumns = tableColumns.filter((column) => column.filterOptions);
@@ -227,7 +230,7 @@ class BaseService {
     protected validateOrderBy(
         tableColumns: IColumnDefinition[],
         orderBy: IOrderBy
-    ): Promise<Error | void> {
+    ): Promise<IError | void> {
         return new Promise((resolve, reject) => {
             const validOrderByColumn = tableColumns.find(
                 (column) => column.isSortable && orderBy.column === column.key
@@ -345,7 +348,7 @@ class BaseService {
      *
      * @param recordNo A record number to validate
      */
-    protected validateRecordNo(recordNo: number, label: string): Promise<Error | void> {
+    protected validateRecordNo(recordNo: number, label: string): Promise<IError | void> {
         return new Promise((resolve, reject) => {
             if (!recordNo || typeof recordNo !== "number") {
                 return reject({

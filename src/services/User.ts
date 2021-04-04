@@ -1,7 +1,7 @@
-import bcrypt from "bcrypt";
 import extend from "extend";
 import knex from "knex";
 
+import { AuthenticationService } from "./Authentication";
 import {
     BaseService,
     FilterCondition,
@@ -99,16 +99,14 @@ export interface IUserColumnDefinition extends IColumnDefinition {
 export const emailAddressRegExpValue = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
 export const usernameRegExpValue = /^([A-Za-z0-9_](?:(?:[A-Za-z0-9_]|(?:.(?!.))){0,28}(?:[A-Za-z0-9_]))?)$/;
 
-const BCRYPT_HASH_SALT_ROUNDS = 10;
-
 /**
  * Service used to manage users
  *
  * @param dbConnection Knex connection used to read/write to the database
  */
 class UserService extends BaseService {
-    private readonly pk = "userNo";
-    private readonly table = "users";
+    readonly pk = "userNo";
+    readonly table = "users";
     private readonly tableColumns: IUserColumnDefinition[] = [
         {
             key: IUserColumnKeys.UserNo,
@@ -338,6 +336,7 @@ class UserService extends BaseService {
      * @param userSubmission User information used to create a new user
      */
     async createUser(userSubmission: ICreateUserValues): Promise<IUserRecord> {
+        const authenticationService = new AuthenticationService(this.dbConnection);
         const createUserValidation: IFormValidation = this.tableColumns
             .filter((column) => column.isRequiredOnCreate)
             .map((column) => ({ ...column, isRequired: true }));
@@ -346,7 +345,7 @@ class UserService extends BaseService {
 
         if (submissionErrors) return Promise.reject(submissionErrors);
 
-        const hashedPassword = await this.hashPassword(userSubmission.password);
+        const hashedPassword = await authenticationService.hashPassword(userSubmission.password);
         const newUser = {
             firstName: userSubmission.firstName.trim(),
             lastName: userSubmission.lastName.trim(),
@@ -508,17 +507,42 @@ class UserService extends BaseService {
                 .where(this.pk, userNo)
                 .then((record) => {
                     if (!record)
-                        throw {
+                        return Promise.reject({
                             statusCode: 404,
                             message: "Not Found",
                             details: [`User with a ${this.pk} of ${userNo} could not be found`]
-                        };
+                        });
 
                     delete record.password;
 
                     return super.cleanRecord<IUserRecord>(record);
                 });
         });
+    }
+
+    /**
+     * Fetches a user record by using `email` as a lookup parameter
+     *
+     * @param email The email used to look for the correct user
+     */
+    getUserByEmail(email: string = ""): Promise<IUserRecord> {
+        return this.dbConnection(this.table)
+            .first("*")
+            .where({ email })
+            .then((record) => {
+                if (!record)
+                    return Promise.reject({
+                        statusCode: 404,
+                        message: "Not Found",
+                        details: [
+                            `User with an ${IUserColumnLabels.Email} of ${email} could not be found`
+                        ]
+                    });
+
+                delete record.password;
+
+                return super.cleanRecord<IUserRecord>(record);
+            });
     }
 
     /**
@@ -696,9 +720,14 @@ class UserService extends BaseService {
                             details: [`User with a ${this.pk} of ${userNo} could not be found`]
                         };
 
-                    return this.comparePasswords(currentPassword, userRecord.password!)
+                    const authenticationService = new AuthenticationService(this.dbConnection);
+
+                    return authenticationService
+                        .comparePasswords(currentPassword, userRecord.password!)
                         .then(async () => {
-                            const hashedPassword = await this.hashPassword(newPassword);
+                            const hashedPassword = await authenticationService.hashPassword(
+                                newPassword
+                            );
 
                             return this.dbConnection(this.table)
                                 .first("*")
@@ -712,42 +741,6 @@ class UserService extends BaseService {
                             return this.getUser(userNo);
                         });
                 });
-        });
-    }
-
-    /**
-     * Hashes a plain text password
-     *
-     * @param password Plain text password to hash
-     */
-    private hashPassword(password: string): Promise<string> {
-        return bcrypt.hash(password, BCRYPT_HASH_SALT_ROUNDS);
-    }
-
-    /**
-     * Confirms a match between a plain text password and an encrypted password
-     *
-     * @param password A password to compare against the encrypted password
-     * @param encryptedPassword The user's encrypted password
-     */
-    private comparePasswords(password: string, encryptedPassword: string): Promise<boolean> {
-        return new Promise((resolve, reject) => {
-            return bcrypt.compare(password, encryptedPassword, (error, isMatch) => {
-                if (error) {
-                    return reject({
-                        statusCode: 500,
-                        message: error.message || "Internal Server Error"
-                    });
-                }
-
-                return isMatch
-                    ? resolve(true)
-                    : reject({
-                          statusCode: 401,
-                          message: "Invalid Credentials",
-                          details: ["Password does not match hashed password"]
-                      });
-            });
         });
     }
 

@@ -70,8 +70,8 @@ export interface IPostColumnDefinition extends IColumnDefinition {
  * @param dbConnection Knex connection used to read/write to the database
  */
 class PostService extends BaseService {
-    private readonly pk = "postNo";
-    private readonly table = "posts";
+    readonly pk = "postNo";
+    readonly table = "posts";
     private readonly tableColumns: IPostColumnDefinition[] = [
         {
             key: IPostColumnKeys.PostNo,

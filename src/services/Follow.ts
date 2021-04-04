@@ -63,8 +63,8 @@ export interface IFollowColumnDefinition extends IColumnDefinition {
  * @param dbConnection Knex connection used to read/write to the database
  */
 class FollowService extends BaseService {
-    private readonly pk = "followNo";
-    private readonly table = "follows";
+    readonly pk = "followNo";
+    readonly table = "follows";
     private readonly tableColumns: IFollowColumnDefinition[] = [
         {
             key: IFollowColumnKeys.FollowNo,

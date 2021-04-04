@@ -109,6 +109,7 @@ class UserModel extends BaseModel {
             }
 
             extend type Query {
+                searchUser(searchTerm: String!): [User]
                 user(pk: ID!): User
                 users(
                     itemsPerPage: Int
