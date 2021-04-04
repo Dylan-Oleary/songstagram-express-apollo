@@ -23,6 +23,9 @@ class UserModel extends BaseModel {
     public getResolvers(): IResolvers {
         return {
             Query: {
+                searchUser: (parent, { searchTerm = "" }) => {
+                    return this.service.searchUser(searchTerm);
+                },
                 user: (parent, { pk = 0 }) => {
                     return this.service.getUser(Number(pk));
                 },
