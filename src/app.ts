@@ -1,9 +1,10 @@
+import { ApolloError, ApolloServer } from "apollo-server-express";
+import express, { Express, Request, Response, NextFunction } from "express";
 import compression from "compression";
 import cors from "cors";
-import express, { Express, Request, Response, NextFunction } from "express";
-import { ApolloError, ApolloServer } from "apollo-server-express";
+import Redis from "ioredis";
 
-import { DB_CONNECTION, SPOTIFY_WEB_API_TOKEN } from "./config/constants";
+import { DB_CONNECTION, REDIS_CLIENT, SPOTIFY_WEB_API_TOKEN } from "./config/constants";
 import { buildSchema } from "./graphql";
 import { initializeSpotify, testDatabaseConnection } from "./config";
 import { baseRouter } from "./routes";
@@ -24,6 +25,11 @@ const initializeApp: () => Express = () => {
             app.use(express.urlencoded({ extended: true }));
             app.use(compression());
             app.use(cors());
+
+            /**
+             * Configure Redis
+             */
+            app.set(REDIS_CLIENT, new Redis());
 
             /**
              * Setup endpoints and middleware
@@ -53,6 +59,22 @@ const initializeApp: () => Express = () => {
                 },
                 introspection: process.env.NODE_ENV !== "production"
             }).applyMiddleware({ app });
+
+            /**
+             * Catch-all 404 handler
+             */
+            app.use("*", (req: Request, res: Response, next: NextFunction) => {
+                const params = (Object.values(req.params) || []).map((param) => param);
+
+                next({
+                    statusCode: 404,
+                    message: "Not Found",
+                    details:
+                        params.length > 0
+                            ? [`${params.join("")} does not exist`]
+                            : ["The requested resource could not be found or does not exist"]
+                });
+            });
 
             /**
              * Setup global error handler

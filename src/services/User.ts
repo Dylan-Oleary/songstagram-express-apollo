@@ -692,6 +692,22 @@ class UserService extends BaseService {
     }
 
     /**
+     * Updates a user's last login date with the current time
+     *
+     * @param userNo The user number of the user to update
+     */
+    updateLastLoginDate(userNo: number): Promise<IUserRecord> {
+        return super.validateRecordNo(userNo, this.pk).then(() => {
+            return this.getUser(userNo).then((userRecord: IUserRecord) => {
+                return this.dbConnection(this.table)
+                    .update({ lastLoginDate: this.dbConnection.fn.now() })
+                    .where(this.pk, userRecord.userNo)
+                    .then(() => this.getUser(userNo));
+            });
+        });
+    }
+
+    /**
      * Update a user's password
      *
      * @param userNo The user number used to look for the correct user

@@ -8,8 +8,7 @@ const authenticateRequest: (req: Request, res: Response, next: NextFunction) => 
     res,
     next
 ) => {
-    const dbConnection = req.app.get(DB_CONNECTION);
-    const authenticationService = new AuthenticationService(dbConnection);
+    const authenticationService = new AuthenticationService(req.app.get(DB_CONNECTION));
 
     return authenticationService
         .authenticateAccessToken(req)
