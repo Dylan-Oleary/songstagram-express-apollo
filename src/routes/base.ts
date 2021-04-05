@@ -23,8 +23,8 @@ const validateTokenRequestData = (req: Request, res: Response, next: NextFunctio
 };
 
 baseRouter.route("/login").post((req: Request, res: Response, next: NextFunction) => {
-    return new AuthenticationService(req.app.get(DB_CONNECTION), req.app.get(REDIS_CLIENT))
-        .authenticateUser(req.body.email, req.body.password)
+    return new AuthenticationService(req.app.get(DB_CONNECTION))
+        .authenticateUser(req.body.email, req.body.password, req.app.get(REDIS_CLIENT))
         .then((response) => res.status(200).json(response))
         .catch(next);
 });
@@ -34,8 +34,8 @@ baseRouter
     .post(validateTokenRequestData, (req: Request, res: Response, next: NextFunction) => {
         const { token, userNo } = req.body;
 
-        return new AuthenticationService(req.app.get(DB_CONNECTION), req.app.get(REDIS_CLIENT))
-            .logoutUser(userNo, token)
+        return new AuthenticationService(req.app.get(DB_CONNECTION))
+            .logoutUser(userNo, token, req.app.get(REDIS_CLIENT))
             .then(() => res.sendStatus(200))
             .catch(next);
     });
@@ -45,8 +45,8 @@ baseRouter
     .post(validateTokenRequestData, (req: Request, res: Response, next: NextFunction) => {
         const { token, userNo } = req.body;
 
-        return new AuthenticationService(req.app.get(DB_CONNECTION), req.app.get(REDIS_CLIENT))
-            .getNewAccessToken(userNo, token)
+        return new AuthenticationService(req.app.get(DB_CONNECTION))
+            .getNewAccessToken(userNo, token, req.app.get(REDIS_CLIENT))
             .then((accessToken) => res.status(200).json({ accessToken }))
             .catch(next);
     });

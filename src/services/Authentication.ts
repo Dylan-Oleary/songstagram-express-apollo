@@ -27,12 +27,10 @@ export interface IUserAccessTokenValues extends IUserRefreshTokenValues {
  */
 class AuthenticationService {
     private dbConnection: knex;
-    private redis: Redis | undefined;
     private hashSaltRounds = 10;
 
-    constructor(dbConnection: knex, redis?: Redis) {
+    constructor(dbConnection: knex) {
         this.dbConnection = dbConnection;
-        this.redis = redis;
     }
 
     /**
@@ -42,7 +40,7 @@ class AuthenticationService {
      */
     public authenticateAccessToken(req: Request): Promise<IUserAccessTokenValues> {
         return new Promise((resolve, reject) => {
-            const authHeader = req.headers["authorization"];
+            const authHeader = req?.headers["authorization"];
             const token = authHeader?.split(" ")[1];
 
             if (!token) {
@@ -110,10 +108,12 @@ class AuthenticationService {
      *
      * @param email The user email
      * @param password The user password
+     * @param redis The redis cache store
      */
     public authenticateUser(
         email: string = "",
-        password: string = ""
+        password: string = "",
+        redis: Redis
     ): Promise<IAuthenticationResponse> {
         const userService = new UserService(this.dbConnection);
 
@@ -121,11 +121,11 @@ class AuthenticationService {
             [IUserColumnKeys.IsBanned, IUserColumnKeys.IsDeleted].forEach((key) => {
                 //@ts-ignore
                 if (user[key]) {
-                    return Promise.reject({
+                    throw {
                         statusCode: 403,
                         message: "Forbidden",
                         details: [`User is forbidden. Reason: ${key}`]
-                    });
+                    };
                 }
             });
 
@@ -146,10 +146,7 @@ class AuthenticationService {
                                 email: userRecord.email
                             });
 
-                            (this.redis as Redis).set(
-                                this.generateRedisCacheKey(userRecord.userNo),
-                                refreshToken
-                            );
+                            redis.set(this.generateRedisCacheKey(userRecord.userNo), refreshToken);
 
                             return {
                                 user: userRecord,
@@ -225,21 +222,22 @@ class AuthenticationService {
      *
      * @param userNo the user number of the user making the request
      * @param token A refresh token
+     * @param redis The redis cache store
      */
-    public getNewAccessToken(userNo: number, token: string): Promise<string> {
+    public getNewAccessToken(userNo: number, token: string, redis: Redis): Promise<string> {
         return new UserService(this.dbConnection).getUser(Number(userNo)).then((user) => {
             [IUserColumnKeys.IsBanned, IUserColumnKeys.IsDeleted].forEach((key) => {
                 //@ts-ignore
                 if (user[key]) {
-                    return Promise.reject({
+                    throw {
                         statusCode: 403,
                         message: "Forbidden",
                         details: [`User is forbidden. Reason: ${key}`]
-                    });
+                    };
                 }
             });
 
-            return this.validateRefreshToken(userNo, token).then(() => {
+            return this.validateRefreshToken(userNo, token, redis).then(() => {
                 return this.generateAccessToken({
                     userNo: user.userNo,
                     email: user.email,
@@ -264,10 +262,11 @@ class AuthenticationService {
      *
      * @param userNo The user number of the user to log out
      * @param token The refresh token to clear from Redis
+     * @param redis The redis cache store
      */
-    public logoutUser(userNo: number, token: string): Promise<void> {
-        return this.validateRefreshToken(Number(userNo), token).then(() =>
-            (this.redis as Redis).del(String(userNo)).then(() => {})
+    public logoutUser(userNo: number, token: string, redis: Redis): Promise<void> {
+        return this.validateRefreshToken(Number(userNo), token, redis).then(() =>
+            redis.del(this.generateRedisCacheKey(userNo)).then(() => {})
         );
     }
 
@@ -276,25 +275,23 @@ class AuthenticationService {
      *
      * @param userNo The user number of the user making the request
      * @param token The refresh token to validate
+     * @param redis The redis cache store
      */
-    private validateRefreshToken(userNo: number, token: string): Promise<string> {
+    private validateRefreshToken(userNo: number, token: string, redis: Redis): Promise<string> {
         return new Promise((resolve, reject) => {
             return this.authenticateRefreshToken(token, userNo)
                 .then(() => {
-                    (this.redis as Redis).get(
-                        this.generateRedisCacheKey(userNo),
-                        (err, refreshToken) => {
-                            if (err || !refreshToken || refreshToken !== token) {
-                                reject({
-                                    statusCode: 403,
-                                    message: "Forbidden",
-                                    details: ["Refresh token could not be verified"]
-                                });
-                            }
-
-                            resolve(String(refreshToken));
+                    redis.get(this.generateRedisCacheKey(userNo), (err, refreshToken) => {
+                        if (err || !refreshToken || refreshToken !== token) {
+                            reject({
+                                statusCode: 403,
+                                message: "Forbidden",
+                                details: ["Refresh token could not be verified"]
+                            });
                         }
-                    );
+
+                        resolve(String(refreshToken));
+                    });
                 })
                 .catch(reject);
         });
