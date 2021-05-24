@@ -222,7 +222,7 @@ describe("Authentication Service", () => {
         });
     }); // close describe("generateRedisCacheKey")
 
-    describe("getNewAccessToken", () => {
+    describe("getNewTokenSet", () => {
         test("throws an error if the user is banned", () => {
             const redis = new Redis();
             const userService = new UserService(dbConnection);
@@ -235,7 +235,7 @@ describe("Authentication Service", () => {
                     return userService
                         .banUser(user.userNo)
                         .then(() => {
-                            return new AuthenticationService(dbConnection).getNewAccessToken(
+                            return new AuthenticationService(dbConnection).getNewTokenSet(
                                 user.userNo,
                                 "token!@",
                                 redis
@@ -268,7 +268,7 @@ describe("Authentication Service", () => {
                     return userService
                         .deleteUser(user.userNo)
                         .then(() => {
-                            return new AuthenticationService(dbConnection).getNewAccessToken(
+                            return new AuthenticationService(dbConnection).getNewTokenSet(
                                 user.userNo,
                                 "token!@",
                                 redis
@@ -289,7 +289,7 @@ describe("Authentication Service", () => {
                 });
         });
 
-        test("returns a new access token", () => {
+        test("returns a new token set", () => {
             const redis = new Redis();
             const authenticationService = new AuthenticationService(dbConnection);
             const userSubmission = buildValidUserSubmission("nalgenewatah") as ICreateUserValues;
@@ -298,21 +298,23 @@ describe("Authentication Service", () => {
                 return authenticationService
                     .authenticateUser(user.email, userSubmission.password, redis)
                     .then(({ refreshToken }) => {
-                        return authenticationService.getNewAccessToken(
+                        return authenticationService.getNewTokenSet(
                             user.userNo,
                             refreshToken,
                             redis
                         );
                     })
-                    .then((accessToken) => {
-                        expect(accessToken).not.toBeUndefined();
-                        expect(accessToken.length).toBeGreaterThan(0);
+                    .then(({ accessToken, refreshToken }) => {
+                        [accessToken, refreshToken].forEach((token) => {
+                            expect(token).not.toBeUndefined();
+                            expect(token.length).toBeGreaterThan(0);
+                        });
 
                         redis.disconnect();
                     });
             });
         });
-    }); // close describe("getNewAccessToken")
+    }); // close describe("getNewTokenSet")
 
     describe("logoutUser", () => {
         test("logs a user out and clears the refresh token from Redis", () => {

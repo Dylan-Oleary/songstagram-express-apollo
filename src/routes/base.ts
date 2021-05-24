@@ -64,10 +64,14 @@ baseRouter
         const { userNo } = req.body;
 
         return new AuthenticationService(req.app.get(DB_CONNECTION))
-            .getNewAccessToken(userNo, req.session!.refreshToken, req.app.get(REDIS_CLIENT))
-            .then((accessToken) => res.status(200).json({ accessToken }))
+            .getNewTokenSet(userNo, req.session!.refreshToken, req.app.get(REDIS_CLIENT))
+            .then(({ accessToken, refreshToken }) => {
+                req.session!.refreshToken = refreshToken;
+
+                return res.status(200).json({ accessToken });
+            })
             .catch((error) => {
-                if (error.statusCode === 403) req.session = null;
+                if (error?.statusCode === 403) req.session = null;
 
                 return next(error);
             });

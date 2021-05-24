@@ -23,6 +23,11 @@ export interface IUserAccessTokenValues extends IUserRefreshTokenValues {
     isBanned: boolean;
 }
 
+export interface ITokenSet {
+    accessToken: string;
+    refreshToken: string;
+}
+
 /**
  * Authentication service
  */
@@ -140,33 +145,15 @@ class AuthenticationService {
                 .then((fullUser: IUserRecord) => {
                     return this.comparePasswords(password, String(fullUser.password)).then(() => {
                         return userService.updateLastLoginDate(user.userNo).then((userRecord) => {
-                            const accessToken = this.generateAccessToken({
-                                userNo: userRecord.userNo,
-                                email: userRecord.email,
-                                isDeleted: userRecord.isDeleted,
-                                isBanned: userRecord.isBanned
-                            });
-                            const refreshToken = this.generateRefreshToken({
-                                userNo: userRecord.userNo,
-                                email: userRecord.email
-                            });
-
-                            redis.set(
-                                this.generateRedisCacheKey(userRecord.userNo),
-                                refreshToken,
-                                "px",
-                                ms(
-                                    process.env.REFRESH_TOKEN_EXPIRES_IN
-                                        ? String(process.env.REFRESH_TOKEN_EXPIRES_IN)
-                                        : "90 days"
-                                )
+                            return this.generateTokenSet(userRecord, redis).then(
+                                ({ accessToken, refreshToken }) => {
+                                    return {
+                                        user: userRecord,
+                                        accessToken,
+                                        refreshToken
+                                    };
+                                }
                             );
-
-                            return {
-                                user: userRecord,
-                                accessToken,
-                                refreshToken
-                            };
                         });
                     });
                 });
@@ -209,7 +196,7 @@ class AuthenticationService {
         return jwt.sign(user, String(process.env.ACCESS_TOKEN_SECRET), {
             expiresIn: process.env.ACCESS_TOKEN_EXPIRES_IN
                 ? String(process.env.ACCESS_TOKEN_EXPIRES_IN)
-                : "1m"
+                : "15m"
         });
     }
 
@@ -236,13 +223,49 @@ class AuthenticationService {
     }
 
     /**
-     * Returns a valid access token
+     * Generates a new token set
+     *
+     * @param user A user record
+     * @param redis An instance of Redis
+     * @returns A new access and refresh token
+     */
+    private generateTokenSet(user: IUserRecord, redis: Redis): Promise<ITokenSet> {
+        const refreshToken = this.generateRefreshToken({
+            userNo: user.userNo,
+            email: user.email
+        });
+        const accessToken = this.generateAccessToken({
+            userNo: user.userNo,
+            email: user.email,
+            isDeleted: user.isDeleted,
+            isBanned: user.isBanned
+        });
+
+        return redis
+            .set(
+                this.generateRedisCacheKey(user.userNo),
+                refreshToken,
+                "px",
+                ms(
+                    process.env.REFRESH_TOKEN_EXPIRES_IN
+                        ? String(process.env.REFRESH_TOKEN_EXPIRES_IN)
+                        : "90 days"
+                )
+            )
+            .then(() => ({
+                accessToken,
+                refreshToken
+            }));
+    }
+
+    /**
+     * Returns a new token set
      *
      * @param userNo the user number of the user making the request
      * @param token A refresh token
      * @param redis The redis cache store
      */
-    public getNewAccessToken(userNo: number, token: string, redis: Redis): Promise<string> {
+    public getNewTokenSet(userNo: number, token: string, redis: Redis): Promise<ITokenSet> {
         return new UserService(this.dbConnection).getUser(Number(userNo)).then((user) => {
             [IUserColumnKeys.IsBanned, IUserColumnKeys.IsDeleted].forEach((key) => {
                 //@ts-ignore
@@ -256,12 +279,7 @@ class AuthenticationService {
             });
 
             return this.validateRefreshToken(userNo, token, redis).then(() => {
-                return this.generateAccessToken({
-                    userNo: user.userNo,
-                    email: user.email,
-                    isDeleted: user.isDeleted,
-                    isBanned: user.isBanned
-                });
+                return this.generateTokenSet(user, redis);
             });
         });
     }
