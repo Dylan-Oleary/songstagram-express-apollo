@@ -13,8 +13,8 @@ const validateTokenRequestData = (req: Request, res: Response, next: NextFunctio
         req.session = null;
 
         return next({
-            statusCode: 400,
-            message: "Bad Request",
+            statusCode: 401,
+            message: "Unauthorized",
             details: ["Session does not exist"]
         });
     }
