@@ -33,8 +33,7 @@ const usersSeed: ICreateUserValues[] = [
     buildRecord("reggie_ladoo"),
     buildRecord("roxythedog"),
     buildRecord("laylathepooch"),
-    buildRecord("boonebone"),
-    buildRecord("peachyH")
+    buildRecord("boonebone")
 ];
 
 exports.seed = (knex: Knex) => {
