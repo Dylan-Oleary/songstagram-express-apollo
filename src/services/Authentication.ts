@@ -3,6 +3,7 @@ import { Request } from "express";
 import { Redis } from "ioredis";
 import jwt from "jsonwebtoken";
 import knex from "knex";
+import ms from "ms";
 
 import { IUserColumnKeys, IUserRecord, UserService } from "./User";
 
@@ -70,35 +71,39 @@ class AuthenticationService {
      *
      * @param token The refresh token
      * @param userNo The user number of the user making the request
+     * @param redis An instance of redis
      */
     public authenticateRefreshToken(
         token: string,
-        userNo: number
+        userNo: number,
+        redis: Redis
     ): Promise<IUserRefreshTokenValues> {
         return new Promise((resolve, reject) => {
-            jwt.verify(token, String(process.env.REFRESH_TOKEN_SECRET), (err, user) => {
+            jwt.verify(token, String(process.env.REFRESH_TOKEN_SECRET), async (err, user) => {
                 if (err) {
+                    await redis.del(this.generateRedisCacheKey(userNo)).catch(reject);
+
                     reject({
                         statusCode: 403,
                         message: "Forbidden",
                         details: ["Token is no longer valid"]
                     });
-                }
+                } else {
+                    const refreshToken = { ...user } as IUserRefreshTokenValues;
 
-                const refreshToken = { ...user } as IUserRefreshTokenValues;
+                    if (Number(refreshToken.userNo) !== Number(userNo)) {
+                        reject({
+                            statusCode: 403,
+                            message: "Forbidden",
+                            details: ["Token is invalid"]
+                        });
+                    }
 
-                if (Number(refreshToken.userNo) !== Number(userNo)) {
-                    reject({
-                        statusCode: 403,
-                        message: "Forbidden",
-                        details: ["Token is invalid"]
+                    resolve({
+                        userNo: Number(refreshToken.userNo),
+                        email: refreshToken.email
                     });
                 }
-
-                resolve({
-                    userNo: Number(refreshToken.userNo),
-                    email: refreshToken.email
-                });
             });
         });
     }
@@ -146,7 +151,16 @@ class AuthenticationService {
                                 email: userRecord.email
                             });
 
-                            redis.set(this.generateRedisCacheKey(userRecord.userNo), refreshToken);
+                            redis.set(
+                                this.generateRedisCacheKey(userRecord.userNo),
+                                refreshToken,
+                                "px",
+                                ms(
+                                    process.env.REFRESH_TOKEN_EXPIRES_IN
+                                        ? String(process.env.REFRESH_TOKEN_EXPIRES_IN)
+                                        : "90 days"
+                                )
+                            );
 
                             return {
                                 user: userRecord,
@@ -214,7 +228,11 @@ class AuthenticationService {
      * @param user User information to be stored in the token
      */
     private generateRefreshToken(user: IUserRefreshTokenValues): string {
-        return jwt.sign(user, String(process.env.REFRESH_TOKEN_SECRET));
+        return jwt.sign(user, String(process.env.REFRESH_TOKEN_SECRET), {
+            expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN
+                ? String(process.env.REFRESH_TOKEN_EXPIRES_IN)
+                : "90 days"
+        });
     }
 
     /**
@@ -279,7 +297,7 @@ class AuthenticationService {
      */
     private validateRefreshToken(userNo: number, token: string, redis: Redis): Promise<string> {
         return new Promise((resolve, reject) => {
-            return this.authenticateRefreshToken(token, userNo)
+            return this.authenticateRefreshToken(token, userNo, redis)
                 .then(() => {
                     redis.get(this.generateRedisCacheKey(userNo), (err, refreshToken) => {
                         if (err || !refreshToken || refreshToken !== token) {

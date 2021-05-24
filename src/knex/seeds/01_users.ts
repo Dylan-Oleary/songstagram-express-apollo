@@ -1,29 +1,30 @@
 import * as Knex from "knex";
 import faker from "faker";
 
-import { IUserColumnKeys } from "../../services";
+import { ICreateUserValues, IUserColumnKeys, UserService } from "../../services";
 
-interface IUserKnexSeed {
-    firstName: string;
-    lastName: string;
-    username: string;
-    email: string;
-    password: string;
-}
-
-const buildRecord: (username: string) => IUserKnexSeed = (username) => {
-    const submission: IUserKnexSeed = {
+const buildRecord: (username: string) => ICreateUserValues = (username) => {
+    const submission: ICreateUserValues = {
         [IUserColumnKeys.FirstName]: faker.name.firstName(),
         [IUserColumnKeys.LastName]: faker.name.lastName(),
         [IUserColumnKeys.Username]: username,
         [IUserColumnKeys.Email]: faker.internet.email(),
-        [IUserColumnKeys.Password]: "$2b$10$ebJQnK5XrBFL4N7mxIaQZOCWiUiHkbdcNCA89vW.heb4lz.xmgyGi"
+        [IUserColumnKeys.Password]: "asd123ASD!",
+        [IUserColumnKeys.ConfirmPassword]: "asd123ASD!"
     };
 
     return submission;
 };
 
-const usersSeed = [
+const usersSeed: ICreateUserValues[] = [
+    {
+        [IUserColumnKeys.FirstName]: "Dylan",
+        [IUserColumnKeys.LastName]: "O'Leary",
+        [IUserColumnKeys.Username]: "dylanolearydev",
+        [IUserColumnKeys.Email]: "dylanolearydev@gmail.com",
+        [IUserColumnKeys.Password]: "asd123ASD!",
+        [IUserColumnKeys.ConfirmPassword]: "asd123ASD!"
+    },
     buildRecord("tommy_gunns"),
     buildRecord("themi11kman"),
     buildRecord("Havok"),
@@ -39,7 +40,5 @@ const usersSeed = [
 exports.seed = (knex: Knex) => {
     return knex("users")
         .del()
-        .then(() => {
-            return knex("users").insert(usersSeed);
-        });
+        .then(() => Promise.all(usersSeed.map((user) => new UserService(knex).createUser(user))));
 };

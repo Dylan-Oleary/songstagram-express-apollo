@@ -3,6 +3,8 @@ import express, { Express, Request, Response, NextFunction } from "express";
 import compression from "compression";
 import cors from "cors";
 import Redis from "ioredis";
+import cookieSession from "cookie-session";
+import ms from "ms";
 
 import { DB_CONNECTION, REDIS_CLIENT, SPOTIFY_WEB_API_TOKEN } from "./config/constants";
 import { buildSchema } from "./graphql";
@@ -25,6 +27,20 @@ const initializeApp: () => Express = () => {
             app.use(express.urlencoded({ extended: true }));
             app.use(compression());
             app.use(cors());
+            app.use(
+                cookieSession({
+                    name: "session",
+                    keys: [process.env.SESSION_KEY_ONE || "", process.env.SESSION_KEY_TWO || ""],
+                    secret: process.env.SESSION_SECRET || "iseedeadpeople",
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === "production",
+                    maxAge: ms(
+                        process.env.REFRESH_TOKEN_EXPIRES_IN
+                            ? String(process.env.REFRESH_TOKEN_EXPIRES_IN)
+                            : "90 days"
+                    )
+                })
+            );
 
             /**
              * Configure Redis
