@@ -231,13 +231,19 @@ describe("Authentication Service", () => {
             return userService
                 .createUser(userSubmission)
                 .then((user) => userService.getUser(user.userNo))
-                .then((user) => {
+                .then(() => {
+                    return new AuthenticationService(dbConnection).authenticateUser(
+                        userSubmission.email,
+                        userSubmission.password,
+                        redis
+                    );
+                })
+                .then(({ refreshToken, user }) => {
                     return userService
                         .banUser(user.userNo)
                         .then(() => {
                             return new AuthenticationService(dbConnection).getNewTokenSet(
-                                user.userNo,
-                                "token!@",
+                                refreshToken,
                                 redis
                             );
                         })
@@ -264,13 +270,19 @@ describe("Authentication Service", () => {
             return userService
                 .createUser(userSubmission)
                 .then((user) => userService.getUser(user.userNo))
-                .then((user) => {
+                .then(() => {
+                    return new AuthenticationService(dbConnection).authenticateUser(
+                        userSubmission.email,
+                        userSubmission.password,
+                        redis
+                    );
+                })
+                .then(({ refreshToken, user }) => {
                     return userService
                         .deleteUser(user.userNo)
                         .then(() => {
                             return new AuthenticationService(dbConnection).getNewTokenSet(
-                                user.userNo,
-                                "token!@",
+                                refreshToken,
                                 redis
                             );
                         })
@@ -298,11 +310,7 @@ describe("Authentication Service", () => {
                 return authenticationService
                     .authenticateUser(user.email, userSubmission.password, redis)
                     .then(({ refreshToken }) => {
-                        return authenticationService.getNewTokenSet(
-                            user.userNo,
-                            refreshToken,
-                            redis
-                        );
+                        return authenticationService.getNewTokenSet(refreshToken, redis);
                     })
                     .then(({ accessToken, refreshToken }) => {
                         [accessToken, refreshToken].forEach((token) => {
@@ -329,7 +337,7 @@ describe("Authentication Service", () => {
                 return authenticationService
                     .authenticateUser(user.email, userSubmission.password, redis)
                     .then(({ refreshToken }) => {
-                        return authenticationService.logoutUser(user.userNo, refreshToken, redis);
+                        return authenticationService.logoutUser(refreshToken, redis);
                     })
                     .then(() => {
                         redis.get(redisKey, (err, value) => {

@@ -19,14 +19,6 @@ const validateTokenRequestData = (req: Request, res: Response, next: NextFunctio
         });
     }
 
-    if (!req.body["userNo"] || String(req.body["userNo"]).trim().length === 0) {
-        return next({
-            statusCode: 400,
-            message: "Bad Request",
-            details: [`Missing request data: userNo is required`]
-        });
-    }
-
     next();
 };
 
@@ -47,10 +39,8 @@ baseRouter.route("/login").post((req: Request, res: Response, next: NextFunction
 baseRouter
     .route("/logout")
     .post(validateTokenRequestData, (req: Request, res: Response, next: NextFunction) => {
-        const { userNo } = req.body;
-
         return new AuthenticationService(req.app.get(DB_CONNECTION))
-            .logoutUser(userNo, req.session!.refreshToken, req.app.get(REDIS_CLIENT))
+            .logoutUser(req.session!.refreshToken, req.app.get(REDIS_CLIENT))
             .then(() => {
                 req.session = null;
                 return res.sendStatus(200);
@@ -61,10 +51,8 @@ baseRouter
 baseRouter
     .route("/token")
     .post(validateTokenRequestData, (req: Request, res: Response, next: NextFunction) => {
-        const { userNo } = req.body;
-
         return new AuthenticationService(req.app.get(DB_CONNECTION))
-            .getNewTokenSet(userNo, req.session!.refreshToken, req.app.get(REDIS_CLIENT))
+            .getNewTokenSet(req.session!.refreshToken, req.app.get(REDIS_CLIENT))
             .then(({ accessToken, refreshToken }) => {
                 req.session!.refreshToken = refreshToken;
 

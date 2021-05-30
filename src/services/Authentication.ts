@@ -75,19 +75,11 @@ class AuthenticationService {
      * Authenticates the refresh token against the refresh token secret and the passed user number
      *
      * @param token The refresh token
-     * @param userNo The user number of the user making the request
-     * @param redis An instance of redis
      */
-    public authenticateRefreshToken(
-        token: string,
-        userNo: number,
-        redis: Redis
-    ): Promise<IUserRefreshTokenValues> {
+    public authenticateRefreshToken(token: string): Promise<IUserRefreshTokenValues> {
         return new Promise((resolve, reject) => {
             jwt.verify(token, String(process.env.REFRESH_TOKEN_SECRET), async (err, user) => {
                 if (err) {
-                    await redis.del(this.generateRedisCacheKey(userNo)).catch(reject);
-
                     reject({
                         statusCode: 403,
                         message: "Forbidden",
@@ -95,14 +87,6 @@ class AuthenticationService {
                     });
                 } else {
                     const refreshToken = { ...user } as IUserRefreshTokenValues;
-
-                    if (Number(refreshToken.userNo) !== Number(userNo)) {
-                        reject({
-                            statusCode: 403,
-                            message: "Forbidden",
-                            details: ["Token is invalid"]
-                        });
-                    }
 
                     resolve({
                         userNo: Number(refreshToken.userNo),
@@ -261,24 +245,23 @@ class AuthenticationService {
     /**
      * Returns a new token set
      *
-     * @param userNo the user number of the user making the request
      * @param token A refresh token
      * @param redis The redis cache store
      */
-    public getNewTokenSet(userNo: number, token: string, redis: Redis): Promise<ITokenSet> {
-        return new UserService(this.dbConnection).getUser(Number(userNo)).then((user) => {
-            [IUserColumnKeys.IsBanned, IUserColumnKeys.IsDeleted].forEach((key) => {
-                //@ts-ignore
-                if (user[key]) {
-                    throw {
-                        statusCode: 403,
-                        message: "Forbidden",
-                        details: [`User is forbidden. Reason: ${key}`]
-                    };
-                }
-            });
+    public getNewTokenSet(token: string, redis: Redis): Promise<ITokenSet> {
+        return this.validateRefreshToken(token, redis).then(({ userNo }) => {
+            return new UserService(this.dbConnection).getUser(userNo).then((user) => {
+                [IUserColumnKeys.IsBanned, IUserColumnKeys.IsDeleted].forEach((key) => {
+                    //@ts-ignore
+                    if (user[key]) {
+                        throw {
+                            statusCode: 403,
+                            message: "Forbidden",
+                            details: [`User is forbidden. Reason: ${key}`]
+                        };
+                    }
+                });
 
-            return this.validateRefreshToken(userNo, token, redis).then(() => {
                 return this.generateTokenSet(user, redis);
             });
         });
@@ -296,12 +279,11 @@ class AuthenticationService {
     /**
      * Logs the user out & removes the passed refresh token from the Redis cache
      *
-     * @param userNo The user number of the user to log out
      * @param token The refresh token to clear from Redis
      * @param redis The redis cache store
      */
-    public logoutUser(userNo: number, token: string, redis: Redis): Promise<void> {
-        return this.validateRefreshToken(Number(userNo), token, redis).then(() =>
+    public logoutUser(token: string, redis: Redis): Promise<void> {
+        return this.validateRefreshToken(token, redis).then(({ userNo }) =>
             redis.del(this.generateRedisCacheKey(userNo)).then(() => {})
         );
     }
@@ -309,14 +291,19 @@ class AuthenticationService {
     /**
      * Validates a refresh token by authenticating against the user, Redis, & the token secret
      *
-     * @param userNo The user number of the user making the request
      * @param token The refresh token to validate
      * @param redis The redis cache store
      */
-    private validateRefreshToken(userNo: number, token: string, redis: Redis): Promise<string> {
+    private validateRefreshToken(
+        token: string,
+        redis: Redis
+    ): Promise<{
+        refreshToken: string;
+        userNo: number;
+    }> {
         return new Promise((resolve, reject) => {
-            return this.authenticateRefreshToken(token, userNo, redis)
-                .then(() => {
+            return this.authenticateRefreshToken(token)
+                .then(({ userNo }) => {
                     redis.get(this.generateRedisCacheKey(userNo), (err, refreshToken) => {
                         if (err || !refreshToken || refreshToken !== token) {
                             reject({
@@ -326,7 +313,10 @@ class AuthenticationService {
                             });
                         }
 
-                        resolve(String(refreshToken));
+                        resolve({
+                            refreshToken: String(refreshToken),
+                            userNo
+                        });
                     });
                 })
                 .catch(reject);
