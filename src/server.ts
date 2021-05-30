@@ -9,7 +9,7 @@ const app = initializeApp();
 /**
  * Server start up log
  */
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3001;
 const packageName = `${process.env.npm_package_name}:${process.env.npm_package_version}`;
 const startString = `Start ${packageName}`;
 

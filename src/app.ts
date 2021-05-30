@@ -26,7 +26,7 @@ const initializeApp: () => Express = () => {
             app.use(express.json());
             app.use(express.urlencoded({ extended: true }));
             app.use(compression());
-            app.use(cors());
+            app.use(cors({ credentials: true, origin: process.env.ALLOWED_ORIGIN }));
             app.use(
                 cookieSession({
                     name: "session",
