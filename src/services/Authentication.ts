@@ -268,6 +268,37 @@ class AuthenticationService {
     }
 
     /**
+     * Returns a new access token
+     *
+     * @param refreshToken A refresh token
+     * @param redis The redis cache store
+     * @returns A new access token
+     */
+    public getNewAccessToken(refreshToken: string, redis: Redis): Promise<string> {
+        return this.validateRefreshToken(refreshToken, redis).then(({ userNo }) => {
+            return new UserService(this.dbConnection).getUser(userNo).then((user) => {
+                [IUserColumnKeys.IsBanned, IUserColumnKeys.IsDeleted].forEach((key) => {
+                    //@ts-ignore
+                    if (user[key]) {
+                        throw {
+                            statusCode: 403,
+                            message: "Forbidden",
+                            details: [`User is forbidden. Reason: ${key}`]
+                        };
+                    }
+                });
+
+                return this.generateAccessToken({
+                    userNo: user.userNo,
+                    email: user.email,
+                    isDeleted: user.isDeleted,
+                    isBanned: user.isBanned
+                });
+            });
+        });
+    }
+
+    /**
      * Hashes a plain text password
      *
      * @param password Plain text password to hash

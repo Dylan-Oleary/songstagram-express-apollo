@@ -49,13 +49,28 @@ baseRouter
     });
 
 baseRouter
-    .route("/token")
-    .post(validateTokenRequestData, (req: Request, res: Response, next: NextFunction) => {
+    .route("/refresh")
+    .get(validateTokenRequestData, (req: Request, res: Response, next: NextFunction) => {
         return new AuthenticationService(req.app.get(DB_CONNECTION))
             .getNewTokenSet(req.session!.refreshToken, req.app.get(REDIS_CLIENT))
             .then(({ accessToken, refreshToken }) => {
                 req.session!.refreshToken = refreshToken;
 
+                return res.status(200).json({ accessToken });
+            })
+            .catch((error) => {
+                if (error?.statusCode === 403) req.session = null;
+
+                return next(error);
+            });
+    });
+
+baseRouter
+    .route("/token")
+    .get(validateTokenRequestData, (req: Request, res: Response, next: NextFunction) => {
+        return new AuthenticationService(req.app.get(DB_CONNECTION))
+            .getNewAccessToken(req.session!.refreshToken, req.app.get(REDIS_CLIENT))
+            .then((accessToken) => {
                 return res.status(200).json({ accessToken });
             })
             .catch((error) => {
