@@ -46,8 +46,7 @@ class AuthenticationService {
      */
     public authenticateAccessToken(req: Request): Promise<IUserAccessTokenValues> {
         return new Promise((resolve, reject) => {
-            const authHeader = req?.headers["authorization"];
-            const token = authHeader?.split(" ")[1];
+            const token = req?.headers["authorization"];
 
             if (!token) {
                 reject({

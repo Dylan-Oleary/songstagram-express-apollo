@@ -11,6 +11,9 @@ export type IResolverArgs = {
 
 export type IResolverContext = {
     dbConnection: knex;
+    user: {
+        userNo: number;
+    };
 };
 
 export interface IResolvers {
