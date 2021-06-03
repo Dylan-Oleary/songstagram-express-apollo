@@ -2,8 +2,23 @@ import { gql } from "apollo-server-express";
 import knex from "knex";
 import { DocumentNode } from "graphql";
 
-import { BaseModel, IResolvers } from "./Base";
-import { FilterCondition, IUserColumnKeys, UserService } from "../../services";
+import { BaseModel, IResolverArgs, IResolverContext, IResolverParent, IResolvers } from "./Base";
+import {
+    FilterCondition,
+    IUserColumnKeys,
+    UserService,
+    UserPreferenceService
+} from "../../services";
+
+interface IUserResolvers extends IResolvers {
+    User: {
+        [key: string]: (
+            parent: IResolverParent,
+            args: IResolverArgs,
+            context: IResolverContext
+        ) => any;
+    };
+}
 
 /**
  * GraphQL User Model
@@ -20,8 +35,15 @@ class UserModel extends BaseModel {
     /**
      * Returns the user model resolvers
      */
-    public getResolvers(): IResolvers {
+    public getResolvers(): IUserResolvers {
         return {
+            User: {
+                preferences: (parent, {}, { user }) => {
+                    return new UserPreferenceService(this.dbConnection).getUserPreference(
+                        user.userNo
+                    );
+                }
+            },
             Query: {
                 me: (parent, {}, { user }) => {
                     return this.service.getUser(Number(user.userNo));
@@ -74,12 +96,21 @@ class UserModel extends BaseModel {
                 bio: String
                 profilePicture: String
 
+                preferences: UserPreference
+
                 isDeleted: Boolean!
                 isBanned: Boolean!
 
                 createdDate: DateTime!
                 lastUpdated: DateTime!
                 lastLoginDate: DateTime
+            }
+
+            type UserPreference {
+                userPreferenceNo: ID!
+                userNo: ID!
+                prefersDarkMode: Boolean
+                lastUpdated: DateTime!
             }
 
             type UserList {
