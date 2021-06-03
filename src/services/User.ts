@@ -480,9 +480,12 @@ class UserService extends BaseService {
     deleteUser(userNo: number): Promise<boolean> {
         return super.validateRecordNo(userNo, this.pk).then(() => {
             return this.getUser(userNo).then((userRecord: IUserRecord) => {
+                const userPreferenceService = new UserPreferenceService(this.dbConnection);
+
                 return this.dbConnection(this.table)
                     .update({ isDeleted: true, lastUpdated: this.dbConnection.fn.now() })
                     .where(this.pk, userRecord.userNo)
+                    .then(() => userPreferenceService.deleteUserPreference(userRecord.userNo))
                     .then(() => true);
             });
         });

@@ -370,7 +370,7 @@ class BaseService {
     protected cleanRecord<T>(record: T): T {
         for (const key of Object.keys(record)) {
             //@ts-ignore
-            if (new RegExp("is[A-Za-z]+").test(key)) {
+            if (new RegExp("is[A-Za-z]+").test(key) || new RegExp("prefers[A-Za-z]").test(key)) {
                 //@ts-ignore
                 record[key] = Boolean(record[key]);
             }

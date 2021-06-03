@@ -7,12 +7,12 @@ import UserService from "./User";
 export interface IUserPreferenceRecord {
     userPreferenceNo: number;
     userNo: number;
-    darkMode: boolean;
+    prefersDarkMode: boolean;
     lastUpdated: Date;
 }
 
 export interface IUserPreferences {
-    darkMode?: boolean;
+    prefersDarkMode?: boolean;
 }
 
 export interface ICreateUserPreferenceValues extends IUserPreferences {
@@ -20,20 +20,20 @@ export interface ICreateUserPreferenceValues extends IUserPreferences {
 }
 
 export interface IUpdateUserPreferenceValues {
-    darkMode?: boolean;
+    prefersDarkMode?: boolean;
 }
 
 export enum IUserPreferenceColumnKeys {
     UserPreferenceNo = "userPreferenceNo",
     UserNo = "userNo",
-    DarkMode = "darkMode",
+    PrefersDarkMode = "prefersDarkMode",
     LastUpdated = "lastUpdated"
 }
 
 export enum IUserPreferenceColumnLabels {
     UserPreferenceNo = "User Preference Number",
     UserNo = "User Number",
-    DarkMode = "Dark Mode",
+    PrefersDarkMode = "Prefers Dark Mode",
     LastUpdated = "Last Updated"
 }
 
@@ -97,7 +97,7 @@ class UserPreferenceService extends BaseService {
             }
         },
         {
-            key: IUserPreferenceColumnKeys.DarkMode,
+            key: IUserPreferenceColumnKeys.PrefersDarkMode,
             isSelectable: true,
             isSearchable: false,
             isSortable: false,
@@ -106,7 +106,16 @@ class UserPreferenceService extends BaseService {
             },
             isRequiredOnCreate: false,
             canEdit: true,
-            label: IUserPreferenceColumnLabels.DarkMode
+            label: IUserPreferenceColumnLabels.PrefersDarkMode,
+            check: (value) => {
+                if (typeof value !== "boolean") {
+                    return new Error(
+                        `${IUserPreferenceColumnLabels.PrefersDarkMode} must be a boolean value`
+                    );
+                }
+
+                return undefined;
+            }
         },
         {
             key: IUserPreferenceColumnKeys.LastUpdated,
@@ -132,9 +141,13 @@ class UserPreferenceService extends BaseService {
         submission: ICreateUserPreferenceValues
     ): Promise<IUserPreferenceRecord> {
         const createUserPreferenceValidation: IFormValidation = this.tableColumns
-            .filter((column) => column.isRequiredOnCreate)
-            .map((column) => ({ ...column, isRequired: true }));
-
+            .filter(
+                (column) =>
+                    column.isRequiredOnCreate ||
+                    //@ts-ignore
+                    submission[column.key as keyof IUserPreferenceColumnKeys] !== undefined
+            )
+            .map((column) => ({ ...column, isRequired: column.isRequiredOnCreate }));
         const submissionErrors = validateSubmission(createUserPreferenceValidation, submission);
 
         if (submissionErrors) return Promise.reject(submissionErrors);
@@ -151,7 +164,7 @@ class UserPreferenceService extends BaseService {
 
         const newUserPreference: ICreateUserPreferenceValues = {
             userNo: Number(submission.userNo),
-            darkMode: submission.darkMode || false
+            prefersDarkMode: submission.prefersDarkMode || false
         };
 
         return this.dbConnection(this.table)
@@ -187,9 +200,17 @@ class UserPreferenceService extends BaseService {
 
         Object.keys(submission).forEach((key) => {
             //@ts-ignore
-            if (submission[key]) {
-                //@ts-ignore
-                cleanSubmission[key] = submission[key].trim();
+            if (submission[key] !== undefined) {
+                if (
+                    new RegExp("is[A-Za-z]+").test(key) ||
+                    new RegExp("prefers[A-Za-z]").test(key)
+                ) {
+                    //@ts-ignore
+                    cleanSubmission[key] = Boolean(submission[key]);
+                } else {
+                    //@ts-ignore
+                    cleanSubmission[key] = submission[key].trim();
+                }
             }
         });
 
@@ -217,7 +238,10 @@ class UserPreferenceService extends BaseService {
         return super.validateRecordNo(userNo, IUserPreferenceColumnKeys.UserNo).then(() => {
             return this.dbConnection(this.table)
                 .first("*")
-                .where(IUserPreferenceColumnKeys.UserNo, userNo)
+                .where({
+                    [IUserPreferenceColumnKeys.UserNo]: userNo,
+                    isDeleted: false
+                })
                 .then((record) => {
                     if (!record)
                         return Promise.reject({
