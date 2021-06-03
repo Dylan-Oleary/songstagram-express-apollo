@@ -8,6 +8,7 @@ exports.up = (knex: Knex): Promise<any> =>
         table.foreign("userNo").references("users.userNo");
 
         table.boolean("darkMode").defaultTo(false);
+        table.boolean("isDeleted").defaultTo(false);
         table.dateTime("lastUpdated").notNullable().defaultTo(knex.fn.now());
     });
 

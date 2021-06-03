@@ -10,6 +10,7 @@ import {
     IListQueryOptions,
     IPagination
 } from "./Base";
+import { IUserPreferences, UserPreferenceService } from "./UserPreference";
 import { IFormValidation, validateSubmission } from "../lib/validateSubmission";
 
 export interface IUserRecord {
@@ -335,8 +336,12 @@ class UserService extends BaseService {
      *
      * @param userSubmission User information used to create a new user
      */
-    async createUser(userSubmission: ICreateUserValues): Promise<IUserRecord> {
+    async createUser(
+        userSubmission: ICreateUserValues,
+        userPreferences: IUserPreferences = {}
+    ): Promise<IUserRecord> {
         const authenticationService = new AuthenticationService(this.dbConnection);
+        const userPreferenceService = new UserPreferenceService(this.dbConnection);
         const createUserValidation: IFormValidation = this.tableColumns
             .filter((column) => column.isRequiredOnCreate)
             .map((column) => ({ ...column, isRequired: true }));
@@ -356,9 +361,13 @@ class UserService extends BaseService {
 
         return this.dbConnection(this.table)
             .insert(newUser)
-            .then((record) => {
-                return this.getUser(record[0]);
-            })
+            .then((record) =>
+                userPreferenceService.createUserPreference({
+                    ...userPreferences,
+                    userNo: Number(record[0])
+                })
+            )
+            .then((record) => this.getUser(record.userNo))
             .catch((error) => {
                 if (new RegExp("(UNIQUE constraint|Duplicate entry)", "i").test(error.message)) {
                     if (

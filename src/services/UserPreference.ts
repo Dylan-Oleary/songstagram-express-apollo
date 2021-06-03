@@ -11,9 +11,12 @@ export interface IUserPreferenceRecord {
     lastUpdated: Date;
 }
 
-export interface ICreateUserPreferenceValues {
-    userNo: number;
+export interface IUserPreferences {
     darkMode?: boolean;
+}
+
+export interface ICreateUserPreferenceValues extends IUserPreferences {
+    userNo: number;
 }
 
 export interface IUpdateUserPreferenceValues {
