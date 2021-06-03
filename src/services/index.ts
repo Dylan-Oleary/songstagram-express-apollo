@@ -6,3 +6,4 @@ export * from "./Likes";
 export * from "./Post";
 export * from "./Spotify";
 export * from "./User";
+export * from "./UserPreference";

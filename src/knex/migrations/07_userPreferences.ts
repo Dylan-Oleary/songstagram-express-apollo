@@ -4,7 +4,7 @@ exports.up = (knex: Knex): Promise<any> =>
     knex.schema.createTable("userPreferences", (table) => {
         table.increments("userPreferenceNo").primary();
 
-        table.integer("userNo").notNullable().unsigned();
+        table.integer("userNo").notNullable().unsigned().unique();
         table.foreign("userNo").references("users.userNo");
 
         table.boolean("darkMode").defaultTo(false);
