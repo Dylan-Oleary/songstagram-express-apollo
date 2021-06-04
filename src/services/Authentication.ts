@@ -6,6 +6,7 @@ import knex from "knex";
 import ms from "ms";
 
 import { IUserColumnKeys, IUserRecord, UserService } from "./User";
+import { UserPreferenceService } from "./UserPreference";
 
 export interface IAuthenticationResponse {
     user: IUserRecord;
@@ -109,6 +110,7 @@ class AuthenticationService {
         redis: Redis
     ): Promise<IAuthenticationResponse> {
         const userService = new UserService(this.dbConnection);
+        const userPreferenceService = new UserPreferenceService(this.dbConnection);
 
         return userService.getUserByEmail(email).then((user) => {
             [IUserColumnKeys.IsBanned, IUserColumnKeys.IsDeleted].forEach((key) => {
@@ -127,17 +129,22 @@ class AuthenticationService {
                 .where({ [userService.pk]: user[userService.pk] })
                 .then((fullUser: IUserRecord) => {
                     return this.comparePasswords(password, String(fullUser.password)).then(() => {
-                        return userService.updateLastLoginDate(user.userNo).then((userRecord) => {
-                            return this.generateTokenSet(userRecord, redis).then(
-                                ({ accessToken, refreshToken }) => {
-                                    return {
-                                        user: userRecord,
-                                        accessToken,
-                                        refreshToken
-                                    };
-                                }
-                            );
-                        });
+                        return Promise.all([
+                            userService.updateLastLoginDate(user.userNo),
+                            userPreferenceService.getUserPreference(user.userNo)
+                        ])
+                            .then(([user, preferences]) => ({ ...user, preferences }))
+                            .then((userRecord) => {
+                                return this.generateTokenSet(userRecord, redis).then(
+                                    ({ accessToken, refreshToken }) => {
+                                        return {
+                                            user: userRecord,
+                                            accessToken,
+                                            refreshToken
+                                        };
+                                    }
+                                );
+                            });
                     });
                 });
         });
