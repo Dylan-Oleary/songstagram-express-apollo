@@ -11,3 +11,7 @@ declare global {
         }
     }
 }
+
+declare interface ILooseObject {
+    [key: string]: any;
+}

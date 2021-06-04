@@ -160,6 +160,10 @@ const buildSchema: (app: Express) => GraphQLSchema = (app) => {
                 uri: String!
             }
 
+            type Mutation {
+                _: Boolean
+            }
+
             type Query {
                 album(albumID: ID!, tracksOffset: Int, tracksLimit: Int): Album
                 albums(albumIDs: [ID]!): [Album]

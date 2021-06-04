@@ -1,40 +1,37 @@
 import knex from "knex";
 import { DocumentNode } from "graphql";
 
-export type IResolverParent = {
-    [key: string]: any;
-};
+import { ILooseObject } from "custom";
 
-export type IResolverArgs = {
-    [key: string]: any;
-};
-
-export type IResolverContext = {
+export type ResolverContext = {
     dbConnection: knex;
     user: {
         userNo: number;
     };
 };
 
+export type Resolver = (parent: ILooseObject, args: ILooseObject, context: ResolverContext) => any;
+
 export interface IResolvers {
-    Query: {
-        [key: string]: (
-            parent: IResolverParent,
-            args: IResolverArgs,
-            context: IResolverContext
-        ) => any;
+    Mutation?: {
+        [key: string]: Resolver;
+    };
+    Query?: {
+        [key: string]: Resolver;
     };
 }
 
-abstract class BaseModel {
+abstract class BaseModel<Service> {
+    protected service: Service;
     protected dbConnection: knex;
 
-    constructor(dbConnection: knex) {
+    constructor(dbConnection: knex, service: Service) {
         this.dbConnection = dbConnection;
+        this.service = service;
     }
 
+    abstract readonly modelName: string;
     abstract getResolvers(): IResolvers;
-
     abstract getTypeDefinitions(): DocumentNode;
 }
 

@@ -2,7 +2,7 @@ import { gql } from "apollo-server-express";
 import knex from "knex";
 import { DocumentNode } from "graphql";
 
-import { BaseModel, IResolverArgs, IResolverContext, IResolverParent, IResolvers } from "./Base";
+import { BaseModel, IResolvers, Resolver } from "./Base";
 import {
     FilterCondition,
     IUserColumnKeys,
@@ -12,24 +12,18 @@ import {
 
 interface IUserResolvers extends IResolvers {
     User: {
-        [key: string]: (
-            parent: IResolverParent,
-            args: IResolverArgs,
-            context: IResolverContext
-        ) => any;
+        preferences: Resolver;
     };
 }
 
 /**
  * GraphQL User Model
  */
-class UserModel extends BaseModel {
-    private service;
+class UserModel extends BaseModel<UserService> {
+    readonly modelName = "User";
 
     constructor(dbConnection: knex) {
-        super(dbConnection);
-
-        this.service = new UserService(dbConnection);
+        super(dbConnection, new UserService(dbConnection));
     }
 
     /**
@@ -41,6 +35,14 @@ class UserModel extends BaseModel {
                 preferences: (parent, {}, { user }) => {
                     return new UserPreferenceService(this.dbConnection).getUserPreference(
                         user.userNo
+                    );
+                }
+            },
+            Mutation: {
+                updateUserPreferences: (parent, { data }, { user }) => {
+                    return new UserPreferenceService(this.dbConnection).updateUserPreference(
+                        user.userNo,
+                        data
                     );
                 }
             },
@@ -140,6 +142,14 @@ class UserModel extends BaseModel {
             input UserOrderBy {
                 column: UserOrderByColumn
                 direction: OrderByDirection
+            }
+
+            input UpdateUserPreferencesData {
+                prefersDarkMode: Boolean
+            }
+
+            extend type Mutation {
+                updateUserPreferences(data: UpdateUserPreferencesData): UserPreference
             }
 
             extend type Query {
