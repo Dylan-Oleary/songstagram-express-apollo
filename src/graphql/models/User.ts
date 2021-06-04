@@ -2,19 +2,13 @@ import { gql } from "apollo-server-express";
 import knex from "knex";
 import { DocumentNode } from "graphql";
 
-import { BaseModel, IResolvers, Resolver } from "./Base";
+import { BaseModel, IResolvers } from "./Base";
 import {
     FilterCondition,
     IUserColumnKeys,
     UserService,
     UserPreferenceService
 } from "../../services";
-
-interface IUserResolvers extends IResolvers {
-    User: {
-        preferences: Resolver;
-    };
-}
 
 /**
  * GraphQL User Model
@@ -29,7 +23,7 @@ class UserModel extends BaseModel<UserService> {
     /**
      * Returns the user model resolvers
      */
-    public getResolvers(): IUserResolvers {
+    public getResolvers(): IResolvers {
         return {
             User: {
                 preferences: (parent, {}, { user }) => {

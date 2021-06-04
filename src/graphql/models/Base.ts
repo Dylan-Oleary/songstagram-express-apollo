@@ -13,10 +13,7 @@ export type ResolverContext = {
 export type Resolver = (parent: ILooseObject, args: ILooseObject, context: ResolverContext) => any;
 
 export interface IResolvers {
-    Mutation?: {
-        [key: string]: Resolver;
-    };
-    Query?: {
+    [key: string]: {
         [key: string]: Resolver;
     };
 }
