@@ -77,7 +77,8 @@ const initializeApp: () => Express = () => {
                         user
                     };
                 },
-                introspection: process.env.NODE_ENV !== "production"
+                introspection: process.env.NODE_ENV !== "production",
+                playground: process.env.NODE_ENV !== "production"
             }).applyMiddleware({ app });
 
             /**
