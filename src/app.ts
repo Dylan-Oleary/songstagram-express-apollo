@@ -61,11 +61,15 @@ const initializeApp: () => Express = () => {
                     const user = await new AuthenticationService(app.get(DB_CONNECTION))
                         .authenticateAccessToken(req)
                         .catch((error: IError) => {
-                            throw new ApolloError(
-                                error?.message || "An unexpected error has occurred",
-                                error.statusCode ? String(error.statusCode) : "500",
-                                error
-                            );
+                            if (process.env.NODE_ENV === "production") {
+                                throw new ApolloError(
+                                    error?.message || "An unexpected error has occurred",
+                                    error.statusCode ? String(error.statusCode) : "500",
+                                    error
+                                );
+                            }
+
+                            return null;
                         });
 
                     return {
