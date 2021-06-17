@@ -1,4 +1,5 @@
 import { Express } from "express";
+import extend from "extend";
 import { gql } from "apollo-server-express";
 import { GraphQLSchema } from "graphql";
 import { makeExecutableSchema } from "graphql-tools";
@@ -42,11 +43,14 @@ const buildSchema: (app: Express) => GraphQLSchema = (app) => {
             ${userModel.getTypeDefinitions()}
             ${spotifyModel.getTypeDefinitions()}
         `,
-        resolvers: {
-            DateTime: GraphQLDateTime,
-            ...userModel.getResolvers(),
-            ...spotifyModel.getResolvers()
-        }
+        resolvers: extend(
+            true,
+            {
+                DateTime: GraphQLDateTime
+            },
+            userModel.getResolvers(),
+            spotifyModel.getResolvers()
+        )
     });
 };
 
