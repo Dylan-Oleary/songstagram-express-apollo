@@ -321,20 +321,22 @@ class SpotifyService {
      * @param query Search term used to search on Spotify
      * @see https://developer.spotify.com/console/search/
      */
-    search(query: string) {
+    search(query: string, limit: number = 10) {
         const params = {
             q: query,
-            type: "track",
-            limit: 10,
+            type: "track,artist,album",
+            limit,
             market: this.market
         };
 
         return axios
             .get(`${this.webApiUrl}/search`, { headers: this.webApiHeaders, params })
             .then(({ data }) => {
-                const { tracks } = data;
+                const { albums, artists, tracks } = data;
 
                 return {
+                    albums: albums.items || [],
+                    artists: artists.items || [],
                     tracks: tracks.items || [],
                     query,
                     total: tracks.total

@@ -152,8 +152,8 @@ class SpotifyModel {
                 artists: (parent, { artistIDs }, { spotifyWebApiToken }) => {
                     return new SpotifyService(spotifyWebApiToken).getArtists(artistIDs);
                 },
-                spotifySearch: (parent, { query }, { spotifyWebApiToken }) => {
-                    return new SpotifyService(spotifyWebApiToken).search(query);
+                spotifySearch: (parent, { limit = 10, query }, { spotifyWebApiToken }) => {
+                    return new SpotifyService(spotifyWebApiToken).search(query, limit);
                 },
                 track: (parent, { trackID }, { spotifyWebApiToken }) => {
                     return new SpotifyService(spotifyWebApiToken).getTrack(trackID);
@@ -277,6 +277,8 @@ class SpotifyModel {
 
             type SpotifySearch {
                 query: String!
+                artists: [Artist]
+                albums: [Album]
                 tracks: [Track]
                 total: Int
             }
@@ -311,7 +313,7 @@ class SpotifyModel {
                     include_groups: [String]
                 ): Artist
                 artists(artistIDs: [ID]!): [Artist]
-                spotifySearch(query: String!): SpotifySearch
+                spotifySearch(query: String!, limit: Int): SpotifySearch
                 track(trackID: ID!): Track
                 tracks(trackIDs: [ID]!): [Track]
             }

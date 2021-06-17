@@ -39,13 +39,13 @@ const buildSchema: (app: Express) => GraphQLSchema = (app) => {
                 _: Boolean
             }
 
-            ${spotifyModel.getTypeDefinitions()}
             ${userModel.getTypeDefinitions()}
+            ${spotifyModel.getTypeDefinitions()}
         `,
         resolvers: {
             DateTime: GraphQLDateTime,
-            ...spotifyModel.getResolvers(),
-            ...userModel.getResolvers()
+            ...userModel.getResolvers(),
+            ...spotifyModel.getResolvers()
         }
     });
 };
