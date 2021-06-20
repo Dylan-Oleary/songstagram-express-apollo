@@ -339,7 +339,7 @@ class SpotifyService {
                     artists: artists.items || [],
                     tracks: tracks.items || [],
                     query,
-                    total: tracks.total
+                    total: tracks.total + albums.total + artists.total
                 };
             });
     }
