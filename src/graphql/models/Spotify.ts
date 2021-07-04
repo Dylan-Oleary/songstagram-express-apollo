@@ -53,9 +53,13 @@ class SpotifyModel {
                     {
                         id: artistID,
                         options = {
-                            limit: 50,
+                            limit: 750,
                             offset: 0,
-                            include_groups: [AlbumGroup.Album, AlbumGroup.Single]
+                            include_groups: [
+                                AlbumGroup.Album,
+                                AlbumGroup.Single,
+                                AlbumGroup.Compilation
+                            ]
                         }
                     },
                     args,
@@ -132,7 +136,11 @@ class SpotifyModel {
                         artistID,
                         albumsOffset = 0,
                         albumsLimit = 50,
-                        include_groups = [AlbumGroup.Album, AlbumGroup.Single]
+                        include_groups = [
+                            AlbumGroup.Album,
+                            AlbumGroup.Single,
+                            AlbumGroup.Compilation
+                        ]
                     },
                     { spotifyWebApiToken }
                 ) => {

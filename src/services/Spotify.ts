@@ -203,7 +203,7 @@ class SpotifyService {
     ): Promise<IPagingObject<IAlbum>> {
         const params: IRequestParams = {
             market: this.market,
-            limit: options.limit || 50,
+            limit: options.limit || 750,
             offset: options.offset || 0
         };
 
