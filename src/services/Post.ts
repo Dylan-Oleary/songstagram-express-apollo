@@ -5,6 +5,7 @@ import {
     BaseService,
     FilterCondition,
     IColumnDefinition,
+    IError,
     IListQueryOptions,
     IPagination
 } from "./Base";
@@ -15,7 +16,7 @@ export interface IPostRecord {
     postNo: number;
     userNo: number;
     body: string;
-    spotifyTrackId: string;
+    spotifyId: string;
     isEdited: boolean;
     isDeleted: boolean;
     createdDate: Date;
@@ -30,7 +31,7 @@ export interface IPostListRecord {
 export interface ICreatePostValues {
     userNo: number;
     body?: string;
-    spotifyTrackId: string;
+    spotifyId: string;
 }
 
 export interface IUpdatePostValues {
@@ -41,7 +42,7 @@ export enum IPostColumnKeys {
     PostNo = "postNo",
     UserNo = "userNo",
     Body = "body",
-    SpotifyTrackID = "spotifyTrackId",
+    SpotifyID = "spotifyId",
     IsEdited = "isEdited",
     IsDeleted = "isDeleted",
     CreatedDate = "createdDate",
@@ -52,7 +53,7 @@ export enum IPostColumnLabels {
     PostNo = "Post Number",
     UserNo = "User Number",
     Body = "Body",
-    SpotifyTrackID = "Spotify Track ID",
+    SpotifyID = "Spotify ID",
     IsEdited = "Is Edited",
     IsDeleted = "Is Deleted",
     CreatedDate = "Created Date",
@@ -127,7 +128,7 @@ class PostService extends BaseService {
             }
         },
         {
-            key: IPostColumnKeys.SpotifyTrackID,
+            key: IPostColumnKeys.SpotifyID,
             isSelectable: true,
             isSearchable: false,
             isSortable: true,
@@ -136,7 +137,7 @@ class PostService extends BaseService {
             },
             isRequiredOnCreate: true,
             canEdit: false,
-            label: IPostColumnLabels.SpotifyTrackID
+            label: IPostColumnLabels.SpotifyID
         },
         {
             key: IPostColumnKeys.IsEdited,
@@ -212,7 +213,7 @@ class PostService extends BaseService {
         const newPost: ICreatePostValues = {
             userNo: user.userNo,
             body: submission.body ? submission.body.trim() : "",
-            spotifyTrackId: submission.spotifyTrackId.trim()
+            spotifyId: submission.spotifyId.trim()
         };
 
         return this.dbConnection(this.table)
@@ -371,6 +372,22 @@ class PostService extends BaseService {
         const options = extend(true, defaultOptions, queryOptions);
 
         return super.getCount(this.table, this.pk, this.tableColumns, options.where);
+    }
+
+    /**
+     * Returns valid filter conditions for the passed column
+     *
+     * @param key The column name
+     */
+    public getColumnFilters(key: IPostColumnKeys): FilterCondition[] | Promise<IError> {
+        return super.getColumnFilters(key, this.tableColumns);
+    }
+
+    /**
+     * Returns an array of column names whose columns are sortable
+     */
+    public getSortableColumns(): IPostColumnKeys[] {
+        return this.tableColumns.filter((column) => column.isSortable).map((column) => column.key);
     }
 }
 

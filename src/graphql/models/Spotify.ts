@@ -20,9 +20,6 @@ export interface ISpotifyResolvers {
     };
 }
 
-/**
- * GraphQL Spotify Model
- */
 class SpotifyModel {
     constructor() {}
 

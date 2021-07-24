@@ -10,9 +10,6 @@ import {
     UserPreferenceService
 } from "../../services";
 
-/**
- * GraphQL User Model
- */
 class UserModel extends BaseModel<UserService> {
     readonly modelName = "User";
 

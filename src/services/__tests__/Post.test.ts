@@ -32,7 +32,7 @@ describe("Post Service", () => {
     const buildValidSubmission: (userNo: number) => ICreatePostValues = (userNo) => {
         return {
             [IPostColumnKeys.UserNo]: userNo,
-            [IPostColumnKeys.SpotifyTrackID]: faker.random.uuid(),
+            [IPostColumnKeys.SpotifyID]: faker.random.uuid(),
             [IPostColumnKeys.Body]: faker.lorem.sentences(Math.floor(Math.random() * 3) + 1)
         };
     };
@@ -157,11 +157,11 @@ describe("Post Service", () => {
                 });
             }); // close describe("User Number")
 
-            describe("Spotify Track ID", () => {
+            describe("Spotify ID", () => {
                 test("throws a validation error (422) if its value is undefined", () => {
                     const invalidSubmission = {
                         ...submission,
-                        [IPostColumnKeys.SpotifyTrackID]: undefined
+                        [IPostColumnKeys.SpotifyID]: undefined
                     };
 
                     //@ts-ignore - Testing column type error
@@ -170,7 +170,7 @@ describe("Post Service", () => {
                         expect(error.message).toEqual("Validation Error");
                         expect(error.details).toEqual(
                             expect.arrayContaining([
-                                `${IPostColumnLabels.SpotifyTrackID} is a required field`
+                                `${IPostColumnLabels.SpotifyID} is a required field`
                             ])
                         );
                     });
@@ -179,7 +179,7 @@ describe("Post Service", () => {
                 test("throws a validation error (422) if its value is null", () => {
                     const invalidSubmission = {
                         ...submission,
-                        [IPostColumnKeys.SpotifyTrackID]: null
+                        [IPostColumnKeys.SpotifyID]: null
                     };
 
                     //@ts-ignore - Testing column type error
@@ -188,7 +188,7 @@ describe("Post Service", () => {
                         expect(error.message).toEqual("Validation Error");
                         expect(error.details).toEqual(
                             expect.arrayContaining([
-                                `${IPostColumnLabels.SpotifyTrackID} is a required field`
+                                `${IPostColumnLabels.SpotifyID} is a required field`
                             ])
                         );
                     });
@@ -197,7 +197,7 @@ describe("Post Service", () => {
                 test("throws a validation error (422) if its value is empty", () => {
                     const invalidSubmission = {
                         ...submission,
-                        [IPostColumnKeys.SpotifyTrackID]: ""
+                        [IPostColumnKeys.SpotifyID]: ""
                     };
 
                     //@ts-ignore - Testing column type error
@@ -206,12 +206,12 @@ describe("Post Service", () => {
                         expect(error.message).toEqual("Validation Error");
                         expect(error.details).toEqual(
                             expect.arrayContaining([
-                                `${IPostColumnLabels.SpotifyTrackID} is a required field`
+                                `${IPostColumnLabels.SpotifyID} is a required field`
                             ])
                         );
                     });
                 });
-            }); // close describe("Spotify Track ID")
+            }); // close describe("Spotify ID")
 
             describe("Body", () => {
                 test("throws a validation error (422) if its value is too long", () => {
@@ -273,25 +273,25 @@ describe("Post Service", () => {
                 expect(postRecord[IPostColumnKeys.UserNo]).toEqual(
                     submission[IPostColumnKeys.UserNo]
                 );
-                expect(postRecord[IPostColumnKeys.SpotifyTrackID]).toEqual(
-                    submission[IPostColumnKeys.SpotifyTrackID]
+                expect(postRecord[IPostColumnKeys.SpotifyID]).toEqual(
+                    submission[IPostColumnKeys.SpotifyID]
                 );
             });
         });
 
-        test(`successfully creates a post with trimmed columns: ${IPostColumnKeys.Body}, ${IPostColumnKeys.SpotifyTrackID}`, () => {
+        test(`successfully creates a post with trimmed columns: ${IPostColumnKeys.Body}, ${IPostColumnKeys.SpotifyID}`, () => {
             const postBody = faker.lorem.paragraph(1);
-            const spotifyTrackId = faker.random.uuid();
+            const spotifyId = faker.random.uuid();
             const submission: ICreatePostValues = {
                 userNo: user.userNo,
                 body: `   ${postBody}   `,
-                spotifyTrackId: `   ${spotifyTrackId}   `
+                spotifyId: `   ${spotifyId}   `
             };
 
             return postService.createPost(submission).then((postRecord) => {
                 expect(postRecord.userNo).toEqual(submission.userNo);
                 expect(postRecord.body).toEqual(postBody);
-                expect(postRecord.spotifyTrackId).toEqual(spotifyTrackId);
+                expect(postRecord.spotifyId).toEqual(spotifyId);
             });
         });
 

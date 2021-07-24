@@ -3,12 +3,12 @@ import * as Knex from "knex";
 
 interface IPostKnexSeed {
     userNo: number;
-    spotifyTrackId: string;
+    spotifyId: string;
     body: string;
 }
 
 const userNumbers: number[] = [];
-const spotifyTrackIds = [
+const spotifyIds = [
     "5fhADVmqLovK2RfroelthQ",
     "5oevNFQMFH9Q3IeeyMhitz",
     "01181df2wJgDpUyDZ8Itbc",
@@ -24,7 +24,7 @@ const spotifyTrackIds = [
 const buildRecord: (userNo: number) => IPostKnexSeed = (userNo) => {
     return {
         userNo,
-        spotifyTrackId: spotifyTrackIds[Math.floor(Math.random() * spotifyTrackIds.length)],
+        spotifyId: spotifyIds[Math.floor(Math.random() * spotifyIds.length)],
         body: faker.lorem.paragraph(Math.ceil(Math.random() * 3))
     };
 };

@@ -8,7 +8,7 @@ exports.up = (knex: Knex): Promise<any> =>
         table.foreign("userNo").references("users.userNo");
 
         table.string("body", 2500).notNullable().defaultTo("");
-        table.string("spotifyTrackId").notNullable();
+        table.string("spotifyId").notNullable();
 
         table.boolean("isEdited").defaultTo(false);
         table.boolean("isDeleted").defaultTo(false);
