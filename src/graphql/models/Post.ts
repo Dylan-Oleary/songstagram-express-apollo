@@ -4,7 +4,7 @@ import { DocumentNode } from "graphql";
 
 import { BaseModel, IResolvers } from "./Base";
 import { authenticateUserSubmission } from "../../lib";
-import { FilterCondition, IPostColumnKeys, PostService } from "../../services";
+import { FilterCondition, IPostColumnKeys, PostService, SpotifyService } from "../../services";
 
 class PostModel extends BaseModel<PostService> {
     readonly modelName = "Post";
@@ -64,15 +64,107 @@ class PostModel extends BaseModel<PostService> {
                             }
                         },
                         pageNo = 1
-                    }
+                    },
+                    { spotifyWebApiToken }
                 ) => {
                     return this.service
                         .getPostList({ where, itemsPerPage, orderBy, pageNo })
                         .then(({ data = [], pagination }) => {
-                            return {
-                                pagination,
-                                posts: data
-                            };
+                            if (data.length > 0) {
+                                const spotify = new SpotifyService(spotifyWebApiToken);
+                                const albumIds = data
+                                    .filter(
+                                        ({ spotifyRecordType }) => spotifyRecordType === "album"
+                                    )
+                                    .map(({ spotifyId }) => spotifyId);
+                                const trackIds = data
+                                    .filter(
+                                        ({ spotifyRecordType }) => spotifyRecordType === "track"
+                                    )
+                                    .map(({ spotifyId }) => spotifyId);
+
+                                return Promise.all([
+                                    albumIds.length > 0
+                                        ? spotify.getAlbums(albumIds)
+                                        : Promise.resolve([]),
+                                    trackIds.length > 0
+                                        ? spotify.getTracks(trackIds)
+                                        : Promise.resolve([])
+                                ]).then(([albums, tracks]) => {
+                                    const postData = [];
+
+                                    for (const post of data) {
+                                        if (post.spotifyRecordType === "album") {
+                                            const album = albums.find(
+                                                ({ id }) => id === post.spotifyId
+                                            );
+
+                                            postData.push({
+                                                ...post,
+                                                album: {
+                                                    id: album?.id,
+                                                    album_type: album?.album_type,
+                                                    copyrights: album?.copyrights,
+                                                    external_ids: album?.external_ids,
+                                                    external_urls: album?.external_urls,
+                                                    genres: album?.genres,
+                                                    href: album?.href,
+                                                    images: album?.images,
+                                                    label: album?.label,
+                                                    name: album?.name,
+                                                    popularity: album?.popularity,
+                                                    release_date: album?.release_date,
+                                                    release_date_precision:
+                                                        album?.release_date_precision,
+                                                    total_tracks: album?.total_tracks,
+                                                    type: album?.type,
+                                                    uri: album?.uri
+                                                },
+                                                artists: album?.artists,
+                                                tracks: album?.tracks.items
+                                            });
+                                        } else {
+                                            const track = tracks.find(
+                                                ({ id }) => id === post.spotifyId
+                                            );
+
+                                            postData.push({
+                                                ...post,
+                                                album: track?.album,
+                                                artists: track?.artists || [],
+                                                tracks: [
+                                                    {
+                                                        id: track?.id,
+                                                        disc_number: track?.disc_number,
+                                                        duration_ms: track?.duration_ms,
+                                                        explicit: track?.explicit || false,
+                                                        external_ids: track?.external_ids,
+                                                        external_urls: track?.external_urls,
+                                                        href: track?.href,
+                                                        is_playable: track?.is_playable,
+                                                        name: track?.name,
+                                                        popularity: track?.popularity,
+                                                        preview_url: track?.preview_url,
+                                                        track_number: track?.track_number,
+                                                        type: track?.type,
+                                                        uri: track?.uri
+                                                    }
+                                                ]
+                                            });
+                                        }
+                                    }
+
+                                    return {
+                                        pagination,
+                                        posts: postData
+                                    };
+                                });
+                            } else {
+                                return {
+                                    pagination,
+                                    posts: data
+                                };
+                            }
                         });
                 }
             }
@@ -85,7 +177,11 @@ class PostModel extends BaseModel<PostService> {
                 postNo: Int!
                 userNo: Int!
                 spotifyId: String!
+                spotifyRecordType: SpotifyRecordType!
                 body: String
+                artists: [Artist]
+                album: Album
+                tracks: [Track]
                 isEdited: Boolean!
                 isDeleted: Boolean!
                 createdDate: DateTime!
@@ -124,6 +220,7 @@ class PostModel extends BaseModel<PostService> {
 
             input CreatePostSubmission {
                 spotifyId: String!
+                spotifyRecordType: SpotifyRecordType!
                 body: String
             }
 

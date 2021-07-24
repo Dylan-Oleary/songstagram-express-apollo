@@ -7,6 +7,7 @@ import { IUserAccessTokenValues } from "../../services";
 export type ResolverContext = {
     dbConnection: knex;
     user: IUserAccessTokenValues;
+    spotifyWebApiToken: string;
 };
 
 export type Resolver = (parent: ILooseObject, args: ILooseObject, context: ResolverContext) => any;

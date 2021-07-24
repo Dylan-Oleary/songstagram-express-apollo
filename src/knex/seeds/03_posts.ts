@@ -1,19 +1,41 @@
 import faker from "faker";
 import * as Knex from "knex";
 
+import { SpotifyRecordType } from "../../services";
+
 interface IPostKnexSeed {
     userNo: number;
     spotifyId: string;
     body: string;
+    spotifyRecordType: SpotifyRecordType;
 }
 
 const userNumbers: number[] = [];
-const spotifyIds = [
-    "5fhADVmqLovK2RfroelthQ",
-    "5oevNFQMFH9Q3IeeyMhitz",
-    "01181df2wJgDpUyDZ8Itbc",
-    "6g0XN48eYelSPzqtwZimfL",
-    "4yaZSWjsZPX47grNDQkbGs"
+const spotifyRecords: { id: string; type: SpotifyRecordType }[] = [
+    {
+        id: "5fhADVmqLovK2RfroelthQ",
+        type: "track"
+    },
+    {
+        id: "5oevNFQMFH9Q3IeeyMhitz",
+        type: "track"
+    },
+    {
+        id: "01181df2wJgDpUyDZ8Itbc",
+        type: "track"
+    },
+    {
+        id: "382ObEPsp2rxGrnsizN5TX",
+        type: "album"
+    },
+    {
+        id: "2noRn2Aes5aoNVsU6iWThc",
+        type: "album"
+    },
+    {
+        id: "2UBYw2qf9PkvoKQ610ocft",
+        type: "album"
+    }
 ];
 
 /**
@@ -22,10 +44,13 @@ const spotifyIds = [
  * @param userNo The user number to assign to the post record
  */
 const buildRecord: (userNo: number) => IPostKnexSeed = (userNo) => {
+    const record = spotifyRecords[Math.floor(Math.random() * spotifyRecords.length)];
+
     return {
         userNo,
-        spotifyId: spotifyIds[Math.floor(Math.random() * spotifyIds.length)],
-        body: faker.lorem.paragraph(Math.ceil(Math.random() * 3))
+        spotifyId: record.id,
+        body: faker.lorem.paragraph(Math.ceil(Math.random() * 3)),
+        spotifyRecordType: record.type
     };
 };
 

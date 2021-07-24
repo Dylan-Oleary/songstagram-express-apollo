@@ -9,6 +9,7 @@ import {
     IListQueryOptions,
     IPagination
 } from "./Base";
+import { SpotifyRecordType } from "./Spotify";
 import { UserService } from "./User";
 import { IFormValidation, validateSubmission } from "../lib/validateSubmission";
 
@@ -17,6 +18,7 @@ export interface IPostRecord {
     userNo: number;
     body: string;
     spotifyId: string;
+    spotifyRecordType: SpotifyRecordType;
     isEdited: boolean;
     isDeleted: boolean;
     createdDate: Date;
@@ -32,6 +34,7 @@ export interface ICreatePostValues {
     userNo: number;
     body?: string;
     spotifyId: string;
+    spotifyRecordType: SpotifyRecordType;
 }
 
 export interface IUpdatePostValues {
@@ -43,6 +46,7 @@ export enum IPostColumnKeys {
     UserNo = "userNo",
     Body = "body",
     SpotifyID = "spotifyId",
+    SpotifyRecordType = "spotifyRecordType",
     IsEdited = "isEdited",
     IsDeleted = "isDeleted",
     CreatedDate = "createdDate",
@@ -54,6 +58,7 @@ export enum IPostColumnLabels {
     UserNo = "User Number",
     Body = "Body",
     SpotifyID = "Spotify ID",
+    SpotifyRecordType = "Spotify Record Type",
     IsEdited = "Is Edited",
     IsDeleted = "Is Deleted",
     CreatedDate = "Created Date",
@@ -140,6 +145,26 @@ class PostService extends BaseService {
             label: IPostColumnLabels.SpotifyID
         },
         {
+            key: IPostColumnKeys.SpotifyRecordType,
+            isSelectable: true,
+            isSearchable: false,
+            isSortable: true,
+            filterOptions: {
+                validConditions: [FilterCondition.Equal]
+            },
+            isRequiredOnCreate: true,
+            canEdit: false,
+            label: IPostColumnLabels.SpotifyRecordType,
+            check: (value) => {
+                if (String(value) !== "album" && String(value) !== "track")
+                    return new Error(
+                        `${IPostColumnLabels.SpotifyRecordType} must be one of: album, track. Received: ${value}`
+                    );
+
+                return undefined;
+            }
+        },
+        {
             key: IPostColumnKeys.IsEdited,
             isSelectable: true,
             isSearchable: false,
@@ -213,7 +238,8 @@ class PostService extends BaseService {
         const newPost: ICreatePostValues = {
             userNo: user.userNo,
             body: submission.body ? submission.body.trim() : "",
-            spotifyId: submission.spotifyId.trim()
+            spotifyId: submission.spotifyId.trim(),
+            spotifyRecordType: submission.spotifyRecordType
         };
 
         return this.dbConnection(this.table)

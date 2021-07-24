@@ -9,6 +9,7 @@ exports.up = (knex: Knex): Promise<any> =>
 
         table.string("body", 2500).notNullable().defaultTo("");
         table.string("spotifyId").notNullable();
+        table.string("spotifyRecordType").notNullable();
 
         table.boolean("isEdited").defaultTo(false);
         table.boolean("isDeleted").defaultTo(false);

@@ -75,6 +75,7 @@ export interface IAlbumExtended extends IAlbum {
     genres: string[];
     label: string;
     popularity: number;
+    total_tracks: number;
     tracks: IPagingObject<ITrack>;
 }
 
@@ -145,6 +146,8 @@ export interface ITrackExtended extends ITrack {
     external_ids: { [key: string]: string };
     popularity: number;
 }
+
+export type SpotifyRecordType = "album" | "track";
 
 /**
  * Service used to fetch data from the Spotify API

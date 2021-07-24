@@ -206,6 +206,11 @@ class SpotifyModel {
                 track
             }
 
+            enum SpotifyRecordType {
+                album
+                track
+            }
+
             type Album {
                 album_group: AlbumGroup
                 album_type: AlbumType!
