@@ -3,6 +3,13 @@ import { Request, Response, NextFunction } from "express";
 import { DB_CONNECTION } from "../config/constants";
 import { AuthenticationService, IUserAccessTokenValues } from "../services";
 
+/**
+ * Authenticates the current request's access token and passes along the request, or rejects the request
+ *
+ * @param req The request object
+ * @param res The response object
+ * @param next The next function
+ */
 const authenticateRequest: (req: Request, res: Response, next: NextFunction) => void = (
     req,
     res,
@@ -20,6 +27,12 @@ const authenticateRequest: (req: Request, res: Response, next: NextFunction) => 
         .catch(next);
 };
 
+/**
+ * Verifies that the user number used in data submission matches the user stored in the access token
+ *
+ * @param user The decoded user stored in the access token
+ * @param submissionUserNo The user number attached to the submission
+ */
 const authenticateUserSubmission: (
     user: IUserAccessTokenValues,
     submissionUserNo: number

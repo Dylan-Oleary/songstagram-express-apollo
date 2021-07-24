@@ -33,6 +33,7 @@ describe("Post Service", () => {
         return {
             [IPostColumnKeys.UserNo]: userNo,
             [IPostColumnKeys.SpotifyID]: faker.random.uuid(),
+            [IPostColumnKeys.SpotifyRecordType]: Math.random() > 0.5 ? "album" : "track",
             [IPostColumnKeys.Body]: faker.lorem.sentences(Math.floor(Math.random() * 3) + 1)
         };
     };
@@ -285,7 +286,8 @@ describe("Post Service", () => {
             const submission: ICreatePostValues = {
                 userNo: user.userNo,
                 body: `   ${postBody}   `,
-                spotifyId: `   ${spotifyId}   `
+                spotifyId: `   ${spotifyId}   `,
+                spotifyRecordType: "album"
             };
 
             return postService.createPost(submission).then((postRecord) => {

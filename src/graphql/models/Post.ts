@@ -4,7 +4,13 @@ import { DocumentNode } from "graphql";
 
 import { BaseModel, IResolvers } from "./Base";
 import { authenticateUserSubmission } from "../../lib";
-import { FilterCondition, IPostColumnKeys, PostService, SpotifyService } from "../../services";
+import {
+    FilterCondition,
+    IPostColumnKeys,
+    IPostRecord,
+    PostService,
+    SpotifyService
+} from "../../services";
 
 class PostModel extends BaseModel<PostService> {
     readonly modelName = "Post";
@@ -33,8 +39,64 @@ class PostModel extends BaseModel<PostService> {
                 }
             },
             Query: {
-                post: (parent, { pk = 0 }) => {
-                    return this.service.getPost(Number(pk));
+                post: (parent, { pk = 0 }, { spotifyWebApiToken }) => {
+                    return this.service.getPost(Number(pk)).then((post) => {
+                        const spotify = new SpotifyService(spotifyWebApiToken);
+
+                        if (post.spotifyRecordType === "album") {
+                            return spotify.getAlbum(post.spotifyId).then((album) => {
+                                return {
+                                    ...post,
+                                    album: {
+                                        id: album?.id,
+                                        album_type: album?.album_type,
+                                        copyrights: album?.copyrights,
+                                        external_ids: album?.external_ids,
+                                        external_urls: album?.external_urls,
+                                        genres: album?.genres,
+                                        href: album?.href,
+                                        images: album?.images,
+                                        label: album?.label,
+                                        name: album?.name,
+                                        popularity: album?.popularity,
+                                        release_date: album?.release_date,
+                                        release_date_precision: album?.release_date_precision,
+                                        total_tracks: album?.total_tracks,
+                                        type: album?.type,
+                                        uri: album?.uri
+                                    },
+                                    artists: album?.artists,
+                                    tracks: album?.tracks.items
+                                } as IPostRecord;
+                            });
+                        } else {
+                            return spotify.getTrack(post.spotifyId).then((track) => {
+                                return {
+                                    ...post,
+                                    album: track?.album,
+                                    artists: track?.artists || [],
+                                    tracks: [
+                                        {
+                                            id: track?.id,
+                                            disc_number: track?.disc_number,
+                                            duration_ms: track?.duration_ms,
+                                            explicit: track?.explicit || false,
+                                            external_ids: track?.external_ids,
+                                            external_urls: track?.external_urls,
+                                            href: track?.href,
+                                            is_playable: track?.is_playable,
+                                            name: track?.name,
+                                            popularity: track?.popularity,
+                                            preview_url: track?.preview_url,
+                                            track_number: track?.track_number,
+                                            type: track?.type,
+                                            uri: track?.uri
+                                        }
+                                    ]
+                                } as IPostRecord;
+                            });
+                        }
+                    });
                 },
                 postCount: (
                     parent,
