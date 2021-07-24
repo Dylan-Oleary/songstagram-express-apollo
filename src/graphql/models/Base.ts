@@ -2,12 +2,11 @@ import knex from "knex";
 import { DocumentNode } from "graphql";
 
 import { ILooseObject } from "custom";
+import { IUserAccessTokenValues } from "../../services";
 
 export type ResolverContext = {
     dbConnection: knex;
-    user: {
-        userNo: number;
-    };
+    user: IUserAccessTokenValues;
 };
 
 export type Resolver = (parent: ILooseObject, args: ILooseObject, context: ResolverContext) => any;

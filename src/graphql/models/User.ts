@@ -80,7 +80,7 @@ class UserModel extends BaseModel<UserService> {
     public getTypeDefinitions(): DocumentNode {
         return gql`
             type User {
-                userNo: ID!
+                userNo: Int!
                 username: String!
                 email: String!
 
@@ -100,8 +100,8 @@ class UserModel extends BaseModel<UserService> {
             }
 
             type UserPreference {
-                userPreferenceNo: ID!
-                userNo: ID!
+                userPreferenceNo: Int!
+                userNo: Int!
                 prefersDarkMode: Boolean
                 lastUpdated: DateTime!
             }
@@ -122,7 +122,7 @@ class UserModel extends BaseModel<UserService> {
             }
 
             input UserNoWhere {
-                value: ID!
+                value: Int!
                 condition: UserNoFilter
             }
 
@@ -146,7 +146,7 @@ class UserModel extends BaseModel<UserService> {
             extend type Query {
                 me: User
                 searchUser(searchTerm: String!): [User]
-                user(pk: ID!): User
+                user(pk: Int!): User
                 users(
                     itemsPerPage: Int
                     pageNo: Int

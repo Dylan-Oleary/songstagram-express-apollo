@@ -3,6 +3,7 @@ import knex from "knex";
 import { DocumentNode } from "graphql";
 
 import { BaseModel, IResolvers } from "./Base";
+import { authenticateUserSubmission } from "../../lib";
 import { FilterCondition, IPostColumnKeys, PostService } from "../../services";
 
 class PostModel extends BaseModel<PostService> {
@@ -15,13 +16,41 @@ class PostModel extends BaseModel<PostService> {
     public getResolvers(): IResolvers {
         return {
             Mutation: {
-                createPost: (parent, { data }) => {
-                    return this.service.createPost(data);
+                createPost: (parent, { submission, userNo }, { user }) => {
+                    return authenticateUserSubmission(user, userNo).then(() => {
+                        return this.service.createPost({ ...submission, userNo });
+                    });
+                },
+                deletePost: (parent, { postNo = 0, userNo }, { user }) => {
+                    return authenticateUserSubmission(user, userNo).then(() => {
+                        return this.service.deletePost(postNo);
+                    });
+                },
+                updatePost: (parent, { postNo = 0, submission, userNo }, { user }) => {
+                    return authenticateUserSubmission(user, userNo).then(() => {
+                        return this.service.updatePost(postNo, submission);
+                    });
                 }
             },
             Query: {
                 post: (parent, { pk = 0 }) => {
                     return this.service.getPost(Number(pk));
+                },
+                postCount: (
+                    parent,
+                    {
+                        where = {},
+                        itemsPerPage = 10,
+                        orderBy = {
+                            orderBy: {
+                                direction: "desc",
+                                column: IPostColumnKeys.PostNo
+                            }
+                        },
+                        pageNo = 1
+                    }
+                ) => {
+                    return this.service.getPostCount({ where, itemsPerPage, orderBy, pageNo });
                 },
                 posts: (
                     parent,
@@ -53,8 +82,8 @@ class PostModel extends BaseModel<PostService> {
     public getTypeDefinitions(): DocumentNode {
         return gql`
             type Post {
-                postNo: ID!
-                userNo: ID!
+                postNo: Int!
+                userNo: Int!
                 spotifyId: String!
                 body: String
                 isEdited: Boolean!
@@ -79,7 +108,7 @@ class PostModel extends BaseModel<PostService> {
             }
 
             input PostNoWhere {
-                value: ID!
+                value: Int!
                 condition: PostNoFilter
             }
 
@@ -93,18 +122,34 @@ class PostModel extends BaseModel<PostService> {
                 direction: OrderByDirection
             }
 
-            input CreatePostData {
-                userNo: ID!
+            input CreatePostSubmission {
                 spotifyId: String!
                 body: String
             }
 
+            input UpdatePostSubmission {
+                body: String
+            }
+
             extend type Mutation {
-                createPost(data: CreatePostData!): Post
+                createPost(
+                    submission: CreatePostSubmission!
+                    userNo: Int!
+                ): Post
+                deletePost(
+                    postNo: Int!
+                    userNo: Int!
+                ): Boolean
+                updatePost(
+                    postNo: Int!
+                    submission: UpdatePostSubmission!
+                    userNo: Int!
+                ): Post
             }
 
             extend type Query {
-                post(pk: ID!): Post
+                post(pk: Int!): Post
+                postCount(where: PostsWhere): Int
                 posts(
                     itemsPerPage: Int
                     pageNo: Int
