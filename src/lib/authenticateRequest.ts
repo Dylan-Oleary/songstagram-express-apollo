@@ -1,7 +1,23 @@
 import { Request, Response, NextFunction } from "express";
+import { AuthenticationError } from "apollo-server-express";
 
 import { DB_CONNECTION } from "../config/constants";
 import { AuthenticationService, IUserAccessTokenValues } from "../services";
+
+/**
+ * Authenticates that a user object exists before continuing with the GraphQL request
+ *
+ * @param user The decoded user object derived from an access token
+ */
+const authenticateGraphQLRequest: (user: IUserAccessTokenValues) => Promise<void> = (user) => {
+    return new Promise((resolve, reject) => {
+        if (!user) {
+            return reject(new AuthenticationError("Invalid Credentials"));
+        }
+
+        return resolve();
+    });
+};
 
 /**
  * Authenticates the current request's access token and passes along the request, or rejects the request
@@ -64,4 +80,4 @@ const authenticateUserSubmission: (
 };
 
 export default authenticateRequest;
-export { authenticateRequest, authenticateUserSubmission };
+export { authenticateGraphQLRequest, authenticateRequest, authenticateUserSubmission };
