@@ -3,11 +3,14 @@ import knex from "knex";
 import { DocumentNode } from "graphql";
 
 import { BaseModel, IResolvers } from "./Base";
+import { authenticateGraphQLRequest } from "../../lib";
 import {
     FilterCondition,
+    FollowService,
     IUserColumnKeys,
     UserService,
-    UserPreferenceService
+    UserPreferenceService,
+    PostService
 } from "../../services";
 
 class UserModel extends BaseModel<UserService> {
@@ -23,29 +26,64 @@ class UserModel extends BaseModel<UserService> {
     public getResolvers(): IResolvers {
         return {
             User: {
+                followerCount: (parent, {}, { user }) => {
+                    return authenticateGraphQLRequest(user).then(() => {
+                        return new FollowService(this.dbConnection).getFollowerCount(user.userNo);
+                    });
+                },
+                followingCount: (parent, {}, { user }) => {
+                    return authenticateGraphQLRequest(user).then(() => {
+                        return new FollowService(this.dbConnection).getFollowingCount(user.userNo);
+                    });
+                },
+                postCount: (parent, {}, { user }) => {
+                    return authenticateGraphQLRequest(user).then(() => {
+                        return new PostService(this.dbConnection).getPostCount({
+                            where: {
+                                userNo: {
+                                    value: user.userNo
+                                }
+                            }
+                        });
+                    });
+                },
                 preferences: (parent, {}, { user }) => {
-                    return new UserPreferenceService(this.dbConnection).getUserPreference(
-                        user.userNo
-                    );
+                    return authenticateGraphQLRequest(user).then(() => {
+                        return new UserPreferenceService(this.dbConnection).getUserPreference(
+                            user.userNo
+                        );
+                    });
                 }
             },
             Mutation: {
                 updateUserPreferences: (parent, { data }, { user }) => {
-                    return new UserPreferenceService(this.dbConnection).updateUserPreference(
-                        user.userNo,
-                        data
-                    );
+                    return authenticateGraphQLRequest(user).then(() => {
+                        return new UserPreferenceService(this.dbConnection).updateUserPreference(
+                            user.userNo,
+                            data
+                        );
+                    });
                 }
             },
             Query: {
                 me: (parent, {}, { user }) => {
-                    return this.service.getUser(Number(user.userNo));
+                    return authenticateGraphQLRequest(user).then(() => {
+                        return this.service.getUser(Number(user.userNo));
+                    });
                 },
-                searchUser: (parent, { searchTerm = "" }) => {
-                    return this.service.searchUser(searchTerm);
+                searchUser: (parent, { searchTerm = "" }, { user }) => {
+                    return authenticateGraphQLRequest(user).then(() => {
+                        return this.service.searchUser(searchTerm);
+                    });
                 },
-                user: (parent, { pk = 0 }) => {
-                    return this.service.getUser(Number(pk));
+                user: (parent, { pk = 0, username = "" }, { user }) => {
+                    return authenticateGraphQLRequest(user).then(() => {
+                        if (pk > 0) {
+                            return this.service.getUser(Number(pk));
+                        } else {
+                            return this.service.getUserByUsername(username.trim());
+                        }
+                    });
                 },
                 users: (
                     parent,
@@ -59,16 +97,19 @@ class UserModel extends BaseModel<UserService> {
                             }
                         },
                         pageNo = 1
-                    }
+                    },
+                    { user }
                 ) => {
-                    return this.service
-                        .getUserList({ where, itemsPerPage, orderBy, pageNo })
-                        .then(({ data = [], pagination }) => {
-                            return {
-                                users: data,
-                                pagination
-                            };
-                        });
+                    return authenticateGraphQLRequest(user).then(() => {
+                        return this.service
+                            .getUserList({ where, itemsPerPage, orderBy, pageNo })
+                            .then(({ data = [], pagination }) => {
+                                return {
+                                    users: data,
+                                    pagination
+                                };
+                            });
+                    });
                 }
             }
         };
@@ -90,6 +131,9 @@ class UserModel extends BaseModel<UserService> {
                 profilePicture: String
 
                 preferences: UserPreference
+                postCount: Int
+                followerCount: Int
+                followingCount: Int
 
                 isDeleted: Boolean!
                 isBanned: Boolean!
@@ -146,7 +190,7 @@ class UserModel extends BaseModel<UserService> {
             extend type Query {
                 me: User
                 searchUser(searchTerm: String!): [User]
-                user(pk: Int!): User
+                user(pk: Int, username: String): User
                 users(
                     itemsPerPage: Int
                     pageNo: Int

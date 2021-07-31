@@ -540,7 +540,11 @@ class UserService extends BaseService {
     getUserByEmail(email: string = ""): Promise<IUserRecord> {
         return this.dbConnection(this.table)
             .first("*")
-            .where({ email })
+            .where({
+                email,
+                isBanned: false,
+                isDeleted: false
+            })
             .then((record) => {
                 if (!record)
                     return Promise.reject({
@@ -548,6 +552,35 @@ class UserService extends BaseService {
                         message: "Not Found",
                         details: [
                             `User with an ${IUserColumnLabels.Email} of ${email} could not be found`
+                        ]
+                    });
+
+                delete record.password;
+
+                return super.cleanRecord<IUserRecord>(record);
+            });
+    }
+
+    /**
+     * Fetches a user record by using `username` as a lookup parameter
+     *
+     * @param username The username used to look for the correct user
+     */
+    getUserByUsername(username: string = ""): Promise<IUserRecord> {
+        return this.dbConnection(this.table)
+            .first("*")
+            .where({
+                isBanned: false,
+                isDeleted: false,
+                username
+            })
+            .then((record) => {
+                if (!record)
+                    return Promise.reject({
+                        statusCode: 404,
+                        message: "Not Found",
+                        details: [
+                            `User with an ${IUserColumnLabels.Username} of ${username} could not be found`
                         ]
                     });
 
