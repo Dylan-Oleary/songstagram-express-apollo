@@ -118,11 +118,8 @@ describe("Authentication Service", () => {
                         });
                 })
                 .catch((error) => {
-                    expect(error.statusCode).toEqual(403);
-                    expect(error.message).toEqual("Forbidden");
-                    expect(error.details).toEqual(
-                        expect.arrayContaining(["User is forbidden. Reason: isBanned"])
-                    );
+                    expect(error.statusCode).toEqual(404);
+                    expect(error.message).toEqual("Not Found");
 
                     redis.disconnect();
                 });
@@ -151,11 +148,8 @@ describe("Authentication Service", () => {
                         });
                 })
                 .catch((error) => {
-                    expect(error.statusCode).toEqual(403);
-                    expect(error.message).toEqual("Forbidden");
-                    expect(error.details).toEqual(
-                        expect.arrayContaining(["User is forbidden. Reason: isDeleted"])
-                    );
+                    expect(error.statusCode).toEqual(404);
+                    expect(error.message).toEqual("Not Found");
 
                     redis.disconnect();
                 });

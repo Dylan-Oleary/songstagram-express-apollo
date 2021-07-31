@@ -113,17 +113,6 @@ class AuthenticationService {
         const userPreferenceService = new UserPreferenceService(this.dbConnection);
 
         return userService.getUserByEmail(email).then((user) => {
-            [IUserColumnKeys.IsBanned, IUserColumnKeys.IsDeleted].forEach((key) => {
-                //@ts-ignore
-                if (user[key]) {
-                    throw {
-                        statusCode: 403,
-                        message: "Forbidden",
-                        details: [`User is forbidden. Reason: ${key}`]
-                    };
-                }
-            });
-
             return this.dbConnection(userService.table)
                 .first("*")
                 .where({ [userService.pk]: user[userService.pk] })
