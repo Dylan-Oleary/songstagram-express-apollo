@@ -6,7 +6,8 @@ import {
     FilterCondition,
     IColumnDefinition,
     IListQueryOptions,
-    IPagination
+    IPagination,
+    IWhereClause
 } from "./Base";
 import { PostService } from "./Post";
 import { IFormValidation, validateSubmission } from "../lib/validateSubmission";
@@ -222,6 +223,15 @@ class CommentsService extends BaseService {
                     return super.cleanRecord<ICommentRecord>(record);
                 });
         });
+    }
+
+    /**
+     * Fetches the amount of comments a record has
+     *
+     * @param referenceNo The primary key value of the record being liked
+     */
+    getCommentCount(where: IWhereClause = {}): Promise<number> {
+        return super.getCount(this.table, this.pk, this.tableColumns, where);
     }
 
     /**

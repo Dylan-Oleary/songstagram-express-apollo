@@ -5,11 +5,15 @@ import { DocumentNode } from "graphql";
 import { BaseModel, IResolvers } from "./Base";
 import { authenticateGraphQLRequest, authenticateUserSubmission } from "../../lib";
 import {
+    CommentsService,
     FilterCondition,
     IPostColumnKeys,
     IPostRecord,
+    LikeReferenceTable,
+    LikesService,
     PostService,
-    SpotifyService
+    SpotifyService,
+    UserService
 } from "../../services";
 
 class PostModel extends BaseModel<PostService> {
@@ -21,6 +25,28 @@ class PostModel extends BaseModel<PostService> {
 
     public getResolvers(): IResolvers {
         return {
+            Post: {
+                commentCount: ({ postNo }, {}, { user }) => {
+                    return authenticateGraphQLRequest(user).then(() => {
+                        return new CommentsService(this.dbConnection).getCommentCount({
+                            postNo: { value: postNo }
+                        });
+                    });
+                },
+                likeCount: ({ postNo }, {}, { user }) => {
+                    return authenticateGraphQLRequest(user).then(() => {
+                        return new LikesService(this.dbConnection).getLikeCount(
+                            postNo,
+                            LikeReferenceTable.Posts
+                        );
+                    });
+                },
+                user: ({ userNo }, {}, { user }) => {
+                    return authenticateGraphQLRequest(user).then(() => {
+                        return new UserService(this.dbConnection).getUser(userNo);
+                    });
+                }
+            },
             Mutation: {
                 createPost: (parent, { submission, userNo }, { user }) => {
                     return authenticateGraphQLRequest(user).then(() => {
@@ -250,7 +276,6 @@ class PostModel extends BaseModel<PostService> {
         return gql`
             type Post {
                 postNo: Int!
-                userNo: Int!
                 spotifyId: String!
                 spotifyRecordType: SpotifyRecordType!
                 body: String
@@ -261,6 +286,10 @@ class PostModel extends BaseModel<PostService> {
                 isDeleted: Boolean!
                 createdDate: DateTime!
                 lastUpdated: DateTime!
+
+                user: User!
+                commentCount: Int
+                likeCount: Int
             }
 
             type PostList {
