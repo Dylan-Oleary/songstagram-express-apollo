@@ -11,6 +11,7 @@ import {
     IPostRecord,
     LikeReferenceTable,
     LikesService,
+    OrderDirection,
     PostService,
     SpotifyService,
     UserService
@@ -39,6 +40,54 @@ class PostModel extends BaseModel<PostService> {
                             postNo,
                             LikeReferenceTable.Posts
                         );
+                    });
+                },
+                nextUserPostNo: ({ postNo, userNo }, {}, { user }) => {
+                    return authenticateGraphQLRequest(user).then(() => {
+                        return new PostService(this.dbConnection)
+                            .getPostList({
+                                itemsPerPage: 1,
+                                where: {
+                                    postNo: {
+                                        condition: FilterCondition.LessThan,
+                                        value: postNo
+                                    },
+                                    userNo: {
+                                        value: userNo
+                                    }
+                                }
+                            })
+                            .then(({ data = [] }) => {
+                                if (data.length === 0) return null;
+
+                                return data[0].postNo;
+                            });
+                    });
+                },
+                prevUserPostNo: ({ postNo, userNo }, {}, { user }) => {
+                    return authenticateGraphQLRequest(user).then(() => {
+                        return new PostService(this.dbConnection)
+                            .getPostList({
+                                itemsPerPage: 1,
+                                orderBy: {
+                                    column: IPostColumnKeys.PostNo,
+                                    direction: OrderDirection.ASC
+                                },
+                                where: {
+                                    postNo: {
+                                        condition: FilterCondition.GreaterThan,
+                                        value: postNo
+                                    },
+                                    userNo: {
+                                        value: userNo
+                                    }
+                                }
+                            })
+                            .then(({ data = [] }) => {
+                                if (data.length === 0) return null;
+
+                                return data[0].postNo;
+                            });
                     });
                 },
                 user: ({ userNo }, {}, { user }) => {
@@ -290,6 +339,8 @@ class PostModel extends BaseModel<PostService> {
                 user: User!
                 commentCount: Int
                 likeCount: Int
+                nextUserPostNo: Int
+                prevUserPostNo: Int
             }
 
             type PostList {
