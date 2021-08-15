@@ -1,13 +1,16 @@
 import extend from "extend";
 import knex from "knex";
+import marked from "marked";
+import sanitizeHtml from "sanitize-html";
+import TurndownService from "turndown";
 
 import {
     BaseService,
     FilterCondition,
     IColumnDefinition,
+    IError,
     IListQueryOptions,
-    IPagination,
-    IWhereClause
+    IPagination
 } from "./Base";
 import { PostService } from "./Post";
 import { IFormValidation, validateSubmission } from "../lib/validateSubmission";
@@ -113,7 +116,7 @@ class CommentsService extends BaseService {
         },
         {
             key: ICommentColumnKeys.Body,
-            isSelectable: false,
+            isSelectable: true,
             isSearchable: false,
             isSortable: false,
             isRequiredOnCreate: true,
@@ -172,7 +175,7 @@ class CommentsService extends BaseService {
         const newComment: ICreateCommentValues = {
             userNo: Number(commentSubmission.userNo),
             postNo: Number(commentSubmission.postNo),
-            body: String(commentSubmission.body).trim()
+            body: this.formatCommentBody(String(commentSubmission.body).trim())
         };
 
         if (commentSubmission.parentCommentNo)
@@ -226,12 +229,21 @@ class CommentsService extends BaseService {
     }
 
     /**
-     * Fetches the amount of comments a record has
+     * Returns the number of comments based on the query options Fetches the amount of comments a record has
      *
-     * @param referenceNo The primary key value of the record being liked
+     * @param queryOptions Additional filters to query by
      */
-    getCommentCount(where: IWhereClause = {}): Promise<number> {
-        return super.getCount(this.table, this.pk, this.tableColumns, where);
+    public getCommentCount(queryOptions: IListQueryOptions = {}): Promise<number> {
+        const defaultOptions = {
+            where: {
+                isDeleted: {
+                    value: false
+                }
+            }
+        };
+        const options = extend(true, defaultOptions, queryOptions);
+
+        return super.getCount(this.table, this.pk, this.tableColumns, options.where);
     }
 
     /**
@@ -281,6 +293,59 @@ class CommentsService extends BaseService {
                     .then(() => true);
             });
         });
+    }
+
+    /**
+     * Returns valid filter conditions for the passed column
+     *
+     * @param key The column name
+     */
+    public getColumnFilters(key: ICommentColumnKeys): FilterCondition[] | Promise<IError> {
+        return super.getColumnFilters(key, this.tableColumns);
+    }
+
+    /**
+     * Returns an array of column names whose columns are sortable
+     */
+    public getSortableColumns(): ICommentColumnKeys[] {
+        return this.tableColumns.filter((column) => column.isSortable).map((column) => column.key);
+    }
+
+    /**
+     * Sanitizes and converts a comment body into markdown
+     *
+     * @param body The comment body to sanitize and convert
+     * @returns A clean comment body in markdown
+     */
+    public formatCommentBody(body: string): string {
+        if (typeof body !== "string" || body.trim() === "") {
+            throw {
+                statusCode: 400,
+                message: "Bad Request",
+                details: ["Unable to sanitize an invalid comment body"]
+            };
+        } else {
+            const turndownService = new TurndownService();
+            const cleanBody = sanitizeHtml(body, {
+                allowedAttributes: {},
+                allowedTags: ["p"]
+            });
+
+            return turndownService.turndown(cleanBody);
+        }
+    }
+
+    /**
+     * Converts a comment record's body from markdown to HTML
+     *
+     * @param comment A comment record
+     * @returns A comment record in which the body has been converted to HTML
+     */
+    public formatCommentToHtml(comment: ICommentRecord): ICommentRecord {
+        return {
+            ...comment,
+            body: marked(comment?.body || "")
+        };
     }
 }
 

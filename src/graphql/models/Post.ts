@@ -30,7 +30,7 @@ class PostModel extends BaseModel<PostService> {
                 commentCount: ({ postNo }, {}, { user }) => {
                     return authenticateGraphQLRequest(user).then(() => {
                         return new CommentsService(this.dbConnection).getCommentCount({
-                            postNo: { value: postNo }
+                            where: { postNo: { value: postNo } }
                         });
                     });
                 },
@@ -181,23 +181,9 @@ class PostModel extends BaseModel<PostService> {
                         });
                     });
                 },
-                postCount: (
-                    parent,
-                    {
-                        where = {},
-                        itemsPerPage = 10,
-                        orderBy = {
-                            orderBy: {
-                                direction: "desc",
-                                column: IPostColumnKeys.PostNo
-                            }
-                        },
-                        pageNo = 1
-                    },
-                    { user }
-                ) => {
+                postCount: (parent, { where = {} }, { user }) => {
                     return authenticateGraphQLRequest(user).then(() => {
-                        return this.service.getPostCount({ where, itemsPerPage, orderBy, pageNo });
+                        return this.service.getPostCount({ where });
                     });
                 },
                 posts: (

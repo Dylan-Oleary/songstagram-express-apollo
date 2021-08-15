@@ -1,5 +1,5 @@
-import { removeObjectFields } from "graphql-tools";
 import path from "path";
+import TurndownService from "turndown";
 
 import { dbConnection } from "~knex/db";
 import {
@@ -12,7 +12,6 @@ import { IPostRecord, PostService } from "~services/Post";
 import { IUserRecord, UserService } from "~services/User";
 
 describe("Comments Service", () => {
-    const table = "comments";
     const pk = "commentNo";
     const commentService = new CommentsService(dbConnection);
     const postService = new PostService(dbConnection);
@@ -32,7 +31,7 @@ describe("Comments Service", () => {
         let submission: ICreateCommentValues = {
             postNo,
             userNo,
-            body: "This song really is the bee's knees, dude."
+            body: "<p>This song really is the bee's knees, dude</p>"
         };
 
         if (parentCommentNo) {
@@ -309,7 +308,7 @@ describe("Comments Service", () => {
                 expect(record).toHaveProperty(pk);
                 expect(record.userNo).toEqual(submission.userNo);
                 expect(record.postNo).toEqual(submission.postNo);
-                expect(record.body).toEqual(submission.body);
+                expect(record.body).toEqual(new TurndownService().turndown(submission.body));
             });
         });
 
@@ -328,7 +327,9 @@ describe("Comments Service", () => {
                     expect(replyRecord).toHaveProperty(pk);
                     expect(replyRecord.userNo).toEqual(replySubmission.userNo);
                     expect(replyRecord.postNo).toEqual(originalRecord.postNo);
-                    expect(replyRecord.body).toEqual(replySubmission.body);
+                    expect(replyRecord.body).toEqual(
+                        new TurndownService().turndown(replySubmission.body)
+                    );
                 });
             });
         });
@@ -348,7 +349,9 @@ describe("Comments Service", () => {
                     expect(replyRecord).toHaveProperty(pk);
                     expect(replyRecord.userNo).toEqual(replySubmission.userNo);
                     expect(replyRecord.postNo).toEqual(replySubmission.postNo);
-                    expect(replyRecord.body).toEqual(replySubmission.body);
+                    expect(replyRecord.body).toEqual(
+                        new TurndownService().turndown(replySubmission.body)
+                    );
                     expect(replyRecord.userNo).toEqual(originalRecord.userNo);
                 });
             });
@@ -485,4 +488,132 @@ describe("Comments Service", () => {
             });
         });
     }); // close describe("deleteComment")
+
+    describe("formatCommentBody", () => {
+        test("throws a bad request (400) error when the passed comment body is not a string", () => {
+            try {
+                //@ts-ignore - Testing invalid argument
+                commentService.formatCommentBody({ id: 1 });
+            } catch (error) {
+                expect(error.statusCode).toEqual(400);
+                expect(error.message).toEqual("Bad Request");
+                expect(error.details).toEqual(
+                    expect.arrayContaining(["Unable to sanitize an invalid comment body"])
+                );
+            }
+        });
+
+        test("throws a bad request (400) error when the passed comment body is an empty string", () => {
+            try {
+                //@ts-ignore - Testing invalid argument
+                commentService.formatCommentBody("     ");
+            } catch (error) {
+                expect(error.statusCode).toEqual(400);
+                expect(error.message).toEqual("Bad Request");
+                expect(error.details).toEqual(
+                    expect.arrayContaining(["Unable to sanitize an invalid comment body"])
+                );
+            }
+        });
+
+        test("successfully filters out <script> tags and any content inside of them", () => {
+            const expectedBody = "This is my comment";
+            const body = `<script>I am really bad stuff, dude</script>${expectedBody}`;
+            const cleanBody = commentService.formatCommentBody(body);
+
+            expect(cleanBody).toEqual(expectedBody);
+
+            console.log(body, cleanBody);
+        });
+
+        [
+            "address",
+            "article",
+            "aside",
+            "footer",
+            "header",
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6",
+            "hgroup",
+            "main",
+            "nav",
+            "section",
+            "blockquote",
+            "dd",
+            "div",
+            "dl",
+            "dt",
+            "figcaption",
+            "figure",
+            "hr",
+            "li",
+            "main",
+            "ol",
+            "pre",
+            "ul",
+            "a",
+            "abbr",
+            "b",
+            "bdi",
+            "bdo",
+            "br",
+            "cite",
+            "code",
+            "data",
+            "dfn",
+            "em",
+            "i",
+            "kbd",
+            "mark",
+            "q",
+            "rb",
+            "rp",
+            "rt",
+            "rtc",
+            "ruby",
+            "s",
+            "samp",
+            "small",
+            "span",
+            "strong",
+            "sub",
+            "sup",
+            "time",
+            "u",
+            "var",
+            "wbr",
+            "caption",
+            "col",
+            "colgroup",
+            "table",
+            "tbody",
+            "td",
+            "tfoot",
+            "th",
+            "thead",
+            "tr"
+        ].forEach((tag) =>
+            test(`successfully filters out ${tag} tags`, () => {
+                const expectedBody = "This is my comment";
+                const body = `<${tag}>${expectedBody}</${tag}>`;
+                const cleanBody = commentService.formatCommentBody(body);
+
+                expect(cleanBody).toEqual(expectedBody);
+            })
+        );
+
+        ["p"].forEach((tag) =>
+            test(`successfully allows ${tag} tags`, () => {
+                const expectedBody = "This is my comment";
+                const body = `<${tag}>${expectedBody}</${tag}>`;
+                const cleanBody = commentService.formatCommentBody(body);
+
+                expect(cleanBody).toEqual(expectedBody);
+            })
+        );
+    });
 }); // close describe("Comments Service")

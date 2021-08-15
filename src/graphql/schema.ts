@@ -6,7 +6,7 @@ import { makeExecutableSchema } from "graphql-tools";
 import { GraphQLDateTime } from "graphql-iso-date";
 
 import { DB_CONNECTION } from "../config/constants";
-import { PostModel, SpotifyModel, UserModel } from "./models";
+import { CommentModel, PostModel, SpotifyModel, UserModel } from "./models";
 
 const buildSchema: (app: Express) => GraphQLSchema = (app) => {
     const dbConnection = app.get(DB_CONNECTION);
@@ -14,6 +14,7 @@ const buildSchema: (app: Express) => GraphQLSchema = (app) => {
     const postModel = new PostModel(dbConnection);
     const spotifyModel = new SpotifyModel();
     const userModel = new UserModel(dbConnection);
+    const commentModel = new CommentModel(dbConnection);
 
     return makeExecutableSchema({
         typeDefs: gql`
@@ -44,6 +45,7 @@ const buildSchema: (app: Express) => GraphQLSchema = (app) => {
             ${postModel.getTypeDefinitions()}
             ${userModel.getTypeDefinitions()}
             ${spotifyModel.getTypeDefinitions()}
+            ${commentModel.getTypeDefinitions()}
         `,
         resolvers: extend(
             true,
@@ -52,7 +54,8 @@ const buildSchema: (app: Express) => GraphQLSchema = (app) => {
             },
             postModel.getResolvers(),
             userModel.getResolvers(),
-            spotifyModel.getResolvers()
+            spotifyModel.getResolvers(),
+            commentModel.getResolvers()
         )
     });
 };
